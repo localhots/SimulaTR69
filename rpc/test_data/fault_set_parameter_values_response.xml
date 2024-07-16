@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cwmp="urn:dslforum-org:cwmp-1-0">
+    <soapenv:Header>
+        <cwmp:ID soapenv:mustUnderstand="1">123</cwmp:ID>
+    </soapenv:Header>
+    <soapenv:Body>
+        <soapenv:Fault>
+            <faultcode>Client</faultcode>
+            <faultstring>CWMP fault</faultstring>
+            <detail>
+                <cwmp:Fault>
+                    <FaultCode>9003</FaultCode>
+                    <FaultString>InvalidArguments</FaultString>
+                    <SetParameterValuesFault>
+                        <ParameterName>InternetGatewayDevice.Time.LocalTimeZone</ParameterName>
+                        <FaultCode>9007</FaultCode>
+                        <FaultString>Not a valid time zone value</FaultString>
+                    </SetParameterValuesFault>
+                    <SetParameterValuesFault>
+                        <ParameterName>InternetGatewayDevice.Time.LocalTimeZoneName</ParameterName>
+                        <FaultCode>9007</FaultCode>
+                        <FaultString>String too long</FaultString>
+                    </SetParameterValuesFault>
+                </cwmp:Fault>
+            </detail>
+        </soapenv:Fault>
+    </soapenv:Body>
+</soapenv:Envelope>

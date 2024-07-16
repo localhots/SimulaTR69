@@ -1,0 +1,27 @@
+# Adopted from
+# https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-ruby
+name: Unit tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ["1.22"]
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+      - name: Install dependencies
+        run: go mod download
+      - name: Run unit tests
+        run: make test

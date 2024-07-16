@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cwmp="urn:dslforum-org:cwmp-1-0">
+    <soapenv:Header>
+        <cwmp:ID soapenv:mustUnderstand="1">123</cwmp:ID>
+    </soapenv:Header>
+    <soapenv:Body>
+        <cwmp:Inform>
+            <DeviceId>
+                <Manufacturer>ACME Networks</Manufacturer>
+                <OUI>DECADE</OUI>
+                <ProductClass>G3000E</ProductClass>
+                <SerialNumber>G3000E-9799109101</SerialNumber>
+            </DeviceId>
+            <Event soapenc:arrayType="cwmp:EventStruct[1]">
+                <EventStruct>
+                    <EventCode>0 BOOTSTRAP</EventCode>
+                    <CommandKey></CommandKey>
+                </EventStruct>
+            </Event>
+            <MaxEnvelopes>1</MaxEnvelopes>
+            <CurrentTime>2024-06-10T01:33:00Z</CurrentTime>
+            <RetryCount>0</RetryCount>
+            <ParameterList soapenc:arrayType="cwmp:ParameterValueStruct[10]">
+                <ParameterValueStruct>
+                    <Name>Device.DeviceInfo.HardwareVersion</Name>
+                    <Value xsi:type="xsd:string">1.0</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.DeviceInfo.ProvisioningCode</Name>
+                    <Value xsi:type="xsd:string">provisioning.code</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.DeviceInfo.SoftwareVersion</Name>
+                    <Value xsi:type="xsd:string">G3000E-1.2.3</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.ManagementServer.AliasBasedAddressing</Name>
+                    <Value xsi:type="xsd:boolean">1</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.ManagementServer.ConnectionRequestURL</Name>
+                    <Value xsi:type="xsd:string">http://192.168.1.1:7547/acs</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.ManagementServer.ParameterKey</Name>
+                    <Value xsi:type="xsd:string">n/a</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.RootDataModelVersion</Name>
+                    <Value xsi:type="xsd:string">2.11</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.X_ACME_WANDetection.PPPUserName</Name>
+                    <Value xsi:type="xsd:string">username</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.X_ACME_WANDetection.WANIPAddress</Name>
+                    <Value xsi:type="xsd:string">192.168.1.1</Value>
+                </ParameterValueStruct>
+                <ParameterValueStruct>
+                    <Name>Device.X_ACME_WANDetection.WANMACAddress</Name>
+                    <Value xsi:type="xsd:string">de:ca:de:11:22:33</Value>
+                </ParameterValueStruct>
+            </ParameterList>
+        </cwmp:Inform>
+    </soapenv:Body>
+</soapenv:Envelope>

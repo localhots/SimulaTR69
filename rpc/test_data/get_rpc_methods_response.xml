@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cwmp="urn:dslforum-org:cwmp-1-0">
+    <soapenv:Header>
+        <cwmp:ID soapenv:mustUnderstand="1">123</cwmp:ID>
+    </soapenv:Header>
+    <soapenv:Body>
+        <cwmp:GetRPCMethodsResponse>
+            <MethodList soapenc:arrayType="xsd:string[12]">
+                <string>GetRPCMethods</string>
+                <string>SetParameterValues</string>
+                <string>GetParameterValues</string>
+                <string>GetParameterNames</string>
+                <string>SetParameterAttributes</string>
+                <string>GetParameterAttributes</string>
+                <string>AddObject</string>
+                <string>DeleteObject</string>
+                <string>Download</string>
+                <string>Reboot</string>
+                <string>ScheduleInform</string>
+                <string>FactoryReset</string>
+            </MethodList>
+        </cwmp:GetRPCMethodsResponse>
+    </soapenv:Body>
+</soapenv:Envelope>
