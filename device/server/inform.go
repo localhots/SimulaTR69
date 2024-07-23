@@ -114,7 +114,7 @@ func (s *Server) Inform() {
 			return
 		}
 		if resp.Body == nil {
-			log.Debug().Msg("Got empty response from ACS, inform finished")
+			log.Info().Msg("Got empty response from ACS, inform finished")
 			break
 		}
 
@@ -124,7 +124,7 @@ func (s *Server) Inform() {
 			return
 		}
 		if len(b) == 0 {
-			log.Debug().Msg("Got empty response from ACS, inform finished")
+			log.Info().Msg("Got empty response from ACS, inform finished")
 			break
 		} else {
 			log.Trace().Msg("Response from ACS\n" + prettyXML(b))
