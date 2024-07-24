@@ -27,6 +27,9 @@ func (s *Server) handleDownload(envID string, r *rpc.DownloadRequest) rpc.Envelo
 	if err != nil {
 		return resp.WithFault(rpc.FaultInternalError)
 	}
+	if hresp.Body == nil {
+		return resp.WithFault(rpc.FaultInternalError)
+	}
 	defer hresp.Body.Close()
 	b, err := io.ReadAll(hresp.Body)
 	if err != nil {
