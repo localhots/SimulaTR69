@@ -15,12 +15,13 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/localhots/SimulaTR69/server/rpc"
 	"github.com/rs/zerolog/log"
+
+	"github.com/localhots/SimulaTR69/rpc"
 )
 
 type DataModel struct {
-	Version       DataModelVersion
+	Version       Version
 	Bootstrapped  bool
 	RetryAttempts uint32
 	CommandKey    string
@@ -39,27 +40,17 @@ type DeviceID struct {
 	SerialNumber string
 }
 
-type Parameter struct {
-	Path         string
-	Object       bool
-	Writable     bool
-	Type         string
-	Value        string
-	Notification int
-	ACL          []string
-}
-
-type DataModelVersion string
+type Version string
 
 const (
-	TR098 DataModelVersion = "TR098"
-	TR181 DataModelVersion = "TR181"
+	TR098 Version = "TR098"
+	TR181 Version = "TR181"
 
 	tr098Prefix = "InternetGatewayDevice."
 	tr181Prefix = "Device."
 )
 
-func LoadDataModel(dmPath, statePath string) (*DataModel, error) {
+func Load(dmPath, statePath string) (*DataModel, error) {
 	log.Info().Str("file", dmPath).Msg("Loading datamodel")
 	dm, err := loadState(statePath)
 	if err != nil {
@@ -453,22 +444,6 @@ func (dm *DataModel) SetValue(path, val string) {
 	dm.Values[path] = v
 }
 
-func (dm *DataModel) TrimPrefix(path string) string {
-	path = strings.TrimPrefix(path, tr098Prefix)
-	path = strings.TrimPrefix(path, tr181Prefix)
-	return path
-}
-
-func (dm *DataModel) TrimPrefixes(paths []string) []string {
-	trimmed := make([]string, 0, len(paths))
-	for _, path := range paths {
-		path = strings.TrimPrefix(path, tr098Prefix)
-		path = strings.TrimPrefix(path, tr181Prefix)
-		trimmed = append(trimmed, path)
-	}
-	return trimmed
-}
-
 func (dm *DataModel) SetCommandKey(ck string) {
 	dm.CommandKey = ck
 }
@@ -531,14 +506,4 @@ func (dm *DataModel) parent(path string) string {
 func (dm *DataModel) exists(path string) bool {
 	_, ok := dm.Values[path]
 	return ok
-}
-
-func (p Parameter) Encode() rpc.ParameterValueEncoder {
-	return rpc.ParameterValueEncoder{
-		Name: p.Path,
-		Value: rpc.ValueEncoder{
-			Type:  p.Type,
-			Value: p.Value,
-		},
-	}
 }

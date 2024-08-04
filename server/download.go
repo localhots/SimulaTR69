@@ -8,7 +8,7 @@ import (
 
 	"github.com/rs/zerolog/log"
 
-	"github.com/localhots/SimulaTR69/server/rpc"
+	"github.com/localhots/SimulaTR69/rpc"
 )
 
 func (s *Server) handleDownload(envID string, r *rpc.DownloadRequest) rpc.EnvelopeEncoder {

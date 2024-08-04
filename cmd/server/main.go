@@ -26,7 +26,7 @@ func main() {
 	}
 	cfg := server.Config
 
-	dm, err := datamodel.LoadDataModel(cfg.DataModelPath, cfg.StateFilePath)
+	dm, err := datamodel.Load(cfg.DataModelPath, cfg.StateFilePath)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load datamodel")
 	}

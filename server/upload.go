@@ -1,9 +1,8 @@
 package server
 
 import (
+	"github.com/localhots/SimulaTR69/rpc"
 	"github.com/rs/zerolog/log"
-
-	"github.com/localhots/SimulaTR69/server/rpc"
 )
 
 func (s *Server) handleUpload(envID string, r *rpc.UploadRequest) rpc.EnvelopeEncoder {

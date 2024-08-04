@@ -3,7 +3,7 @@ package server
 import (
 	"github.com/rs/zerolog/log"
 
-	"github.com/localhots/SimulaTR69/server/rpc"
+	"github.com/localhots/SimulaTR69/rpc"
 )
 
 // AccessList values are intentionally not respected.
