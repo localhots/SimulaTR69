@@ -11,8 +11,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
-	"github.com/localhots/SimulaTR69/device/datamodel"
-	"github.com/localhots/SimulaTR69/device/server"
+	"github.com/localhots/SimulaTR69/datamodel"
+	"github.com/localhots/SimulaTR69/server"
 )
 
 func main() {

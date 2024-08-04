@@ -13,8 +13,8 @@ import (
 	"github.com/go-xmlfmt/xmlfmt"
 	"github.com/rs/zerolog/log"
 
-	"github.com/localhots/SimulaTR69/device/datamodel"
-	"github.com/localhots/SimulaTR69/rpc"
+	"github.com/localhots/SimulaTR69/datamodel"
+	"github.com/localhots/SimulaTR69/server/rpc"
 )
 
 type Server struct {

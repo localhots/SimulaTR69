@@ -3,8 +3,8 @@ package server
 import (
 	"github.com/rs/zerolog/log"
 
-	"github.com/localhots/SimulaTR69/device/datamodel"
-	"github.com/localhots/SimulaTR69/rpc"
+	"github.com/localhots/SimulaTR69/datamodel"
+	"github.com/localhots/SimulaTR69/server/rpc"
 )
 
 func (s *Server) handleSetParameterValues(envID string, r *rpc.SetParameterValuesRequest) rpc.EnvelopeEncoder {

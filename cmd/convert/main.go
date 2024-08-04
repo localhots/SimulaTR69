@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	datamodel "github.com/localhots/SimulaTR69/device/datamodel"
+	"github.com/localhots/SimulaTR69/datamodel"
 	"github.com/rs/zerolog/log"
 )
 

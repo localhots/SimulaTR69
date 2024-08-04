@@ -15,7 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/localhots/SimulaTR69/rpc"
+	"github.com/localhots/SimulaTR69/server/rpc"
 	"github.com/rs/zerolog/log"
 )
 

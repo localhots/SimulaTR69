@@ -3,7 +3,7 @@ package server
 import (
 	"github.com/rs/zerolog/log"
 
-	"github.com/localhots/SimulaTR69/rpc"
+	"github.com/localhots/SimulaTR69/server/rpc"
 )
 
 func (s *Server) handleFactoryReset(envID string) rpc.EnvelopeEncoder {
