@@ -31,6 +31,7 @@ var Config struct {
 	ACSUsername   string        `env:"ACS_USERNAME"`
 	ACSPassword   string        `env:"ACS_PASSWORD"`
 	LogLevel      string        `env:"LOG_LEVEL, default=info"`
+	RebootDelay time.Duration `env:"REBOOT_DELAY, default=5s"`
 }
 
 func LoadConfig(ctx context.Context) error {

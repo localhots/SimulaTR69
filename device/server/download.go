@@ -54,8 +54,7 @@ func (s *Server) handleDownload(envID string, r *rpc.DownloadRequest) rpc.Envelo
 			status = rpc.DownloadNotCompleted
 			s.dm.NotifyParams = append(s.dm.NotifyParams, "DeviceInfo.SoftwareVersion")
 			// Stop informs for the upgrade delay duration
-			s.dm.SetPeriodicInformTime(time.Now().Add(Config.UpgradeDelay))
-			s.ResetInformTimer()
+			s.pretendOfflineFor(Config.UpgradeDelay)
 		} else {
 			return resp.WithFaultMsg(rpc.FaultInternalError, "incompatible firmware")
 		}

@@ -144,6 +144,13 @@ func (s *Server) handleGetOptions(envID string) rpc.EnvelopeEncoder {
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
+func (s *Server) pretendOfflineFor(dur time.Duration) {
+	downUntil := time.Now().Add(dur)
+	s.dm.DownUntil = downUntil
+	s.dm.SetPeriodicInformTime(downUntil)
+	s.ResetInformTimer()
+}
+
 var envelopeID uint64
 
 func newEnvelope() rpc.EnvelopeEncoder {

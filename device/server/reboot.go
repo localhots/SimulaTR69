@@ -1,8 +1,6 @@
 package server
 
 import (
-	"time"
-
 	"github.com/rs/zerolog/log"
 
 	"github.com/localhots/SimulaTR69/rpc"
@@ -15,9 +13,8 @@ func (s *Server) handleReboot(envID string, r *rpc.RebootRequest) rpc.EnvelopeEn
 	s.dm.SetCommandKey(r.CommandKey)
 
 	go func() {
-		time.Sleep(5 * time.Second)
 		s.dm.AddEvent(rpc.EventBoot)
-		s.Inform()
+		s.pretendOfflineFor(Config.RebootDelay)
 	}()
 	return resp
 }
