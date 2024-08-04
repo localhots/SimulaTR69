@@ -258,16 +258,23 @@ func (dm *DataModel) SetParameterAttribute(name string, notif int, notifChange b
 	}
 }
 
-func (dm *DataModel) AddObject(name string) *int {
+func (dm *DataModel) AddObject(name string) (int, error) {
 	dm.lock.Lock()
 	defer dm.lock.Unlock()
 
 	name = strings.TrimSuffix(name, ".")
 
-	// TODO: Improve this check. See if parent is writable
-	if p, ok := dm.Values[name]; !ok || !p.Object {
-		return nil
+	p, ok := dm.Values[name]
+	if !ok {
+		return 0, errors.New("parent object doesn't exist")
 	}
+	if !p.Object {
+		return 0, errors.New("parent is not an object")
+	}
+	if !p.Writable {
+		return 0, errors.New("parent is not writable")
+	}
+
 	reg := regexp.MustCompile(`^` + name + `\.(\d+)`)
 	var max int
 	for k := range dm.Values {
@@ -292,7 +299,7 @@ func (dm *DataModel) AddObject(name string) *int {
 		Writable: true,
 	}
 
-	return &next
+	return next, nil
 }
 
 func (dm *DataModel) DeleteObject(name string) {

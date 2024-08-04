@@ -270,6 +270,11 @@ func (ee EnvelopeEncoder) WithFault(fault FaultCode) EnvelopeEncoder {
 	return ee
 }
 
+func (ee EnvelopeEncoder) WithFaultMsg(fault FaultCode, msg string) EnvelopeEncoder {
+	ee.Body.Fault = NewFaultResponse(fault, msg)
+	return ee
+}
+
 func (ee EnvelopeEncoder) Encode() ([]byte, error) {
 	return ee.encode(false)
 }

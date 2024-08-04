@@ -13,17 +13,17 @@ func (s *Server) handleAddObject(envID string, r *rpc.AddObjectRequest) rpc.Enve
 	r.Debug()
 	resp := rpc.NewEnvelope(envID)
 	if !strings.HasSuffix(r.ObjectName, ".") {
-		return resp.WithFault(rpc.FaultInvalidParameterName)
+		return resp.WithFaultMsg(rpc.FaultInvalidParameterName, "object name must end with a dot")
 	}
 
-	i := s.dm.AddObject(r.ObjectName)
-	if i == nil {
-		return rpc.NewEnvelope(envID).WithFault(rpc.FaultInvalidParameterName)
+	i, err := s.dm.AddObject(r.ObjectName)
+	if err != nil {
+		return resp.WithFaultMsg(rpc.FaultInvalidParameterName, err.Error())
 	}
 	s.dm.SetParameterKey(r.ParameterKey)
 
 	resp.Body.AddObjectResponse = &rpc.AddObjectResponseEncoder{
-		InstanceNumber: uint(*i),
+		InstanceNumber: uint(i),
 		Status:         0,
 	}
 	return resp
