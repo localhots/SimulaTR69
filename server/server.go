@@ -64,8 +64,8 @@ func New(dm *datamodel.DataModel) *Server {
 
 func (s *Server) handleConnectionRequest(w http.ResponseWriter, r *http.Request) {
 	// Simulate downtime
-	if s.dm.DownUntil.After(time.Now()) {
-		retryAfter := int(time.Until(s.dm.DownUntil).Seconds())
+	if s.dm.DownUntil().After(time.Now()) {
+		retryAfter := int(time.Until(s.dm.DownUntil()).Seconds())
 		w.WriteHeader(http.StatusServiceUnavailable)
 		w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
 		return
@@ -146,7 +146,7 @@ func (s *Server) handleGetOptions(envID string) rpc.EnvelopeEncoder {
 
 func (s *Server) pretendOfflineFor(dur time.Duration) {
 	downUntil := time.Now().Add(dur)
-	s.dm.DownUntil = downUntil
+	s.dm.SetDownUntil(downUntil)
 	s.dm.SetPeriodicInformTime(downUntil)
 	s.ResetInformTimer()
 }

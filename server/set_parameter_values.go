@@ -22,7 +22,7 @@ func (s *Server) handleSetParameterValues(envID string, r *rpc.SetParameterValue
 
 	var faults []rpc.SetParameterValuesFault
 	for _, p := range params {
-		if fc := s.dm.TrySetValue(p); fc != nil {
+		if fc := s.dm.CanSetValue(p); fc != nil {
 			faults = append(faults, rpc.SetParameterValuesFault{
 				ParameterName: p.Path,
 				FaultCode:     *fc,

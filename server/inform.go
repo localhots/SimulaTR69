@@ -137,7 +137,7 @@ func (s *Server) Inform() {
 
 	events := informEnv.Body.Inform.Event.Events
 	if len(events) == 1 && events[0].EventCode == rpc.EventBootstrap {
-		s.dm.Bootstrapped = true
+		s.dm.SetBootstrapped(true)
 	}
 }
 
@@ -153,10 +153,10 @@ func (s *Server) makeInformEnvelope() rpc.EnvelopeEncoder {
 	params := []rpc.ParameterValueEncoder{
 		s.dm.ConnectionRequestURL().Encode(),
 	}
-	for _, p := range s.dm.NotifyParams {
+	for _, p := range s.dm.NotifyParams() {
 		params = append(params, s.dm.GetValue(p).Encode())
 	}
-	s.dm.NotifyParams = []string{}
+	s.dm.ClearNotifyParams()
 
 	env := newEnvelope()
 	env.Body.Inform = &rpc.InformRequestEncoder{
@@ -172,7 +172,7 @@ func (s *Server) makeInformEnvelope() rpc.EnvelopeEncoder {
 		},
 		MaxEnvelopes: rpc.MaxEnvelopes,
 		CurrentTime:  time.Now().Format(time.RFC3339),
-		RetryCount:   int(s.dm.RetryAttempts),
+		RetryCount:   int(s.dm.RetryAttempts()),
 		ParameterList: rpc.ParameterListEncoder{
 			ArrayType:       rpc.ArrayType("cwmp:ParameterValueStruct", len(params)),
 			ParameterValues: params,
