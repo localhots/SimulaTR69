@@ -20,13 +20,14 @@ import (
 
 func (s *Server) periodicInform() {
 	for {
-		if s.dm.PeriodicInformEnabled() {
-			it := s.dm.PeriodicInformTime()
-			if it.After(time.Now()) {
-				log.Info().Time("time", it).Msg("Inform delayed")
-				time.Sleep(time.Until(it))
-			}
+		it := s.dm.PeriodicInformTime()
+		if it.After(time.Now()) {
+			log.Info().Time("time", it).Msg("Inform delayed")
+			time.Sleep(time.Until(it))
+			s.Inform()
+		}
 
+		if s.dm.PeriodicInformEnabled() {
 			ii := s.dm.PeriodicInformInterval()
 			log.Info().Str("delay", ii.String()).Msg("Scheduling next Inform request")
 			select {
@@ -100,12 +101,6 @@ func (s *Server) Inform() {
 	s.dm.ResetRetryAttempts()
 	s.dm.ClearEvents()
 	var nextEnv *rpc.EnvelopeEncoder
-	if tcr := s.dm.TryGetTransferComplete(); tcr != nil {
-		tcrEnv := newEnvelope()
-		tcrEnv.Body.TransferCompleteRequest = tcr
-		nextEnv = &tcrEnv
-		// TODO: Need to completely rewrite this.
-	}
 	for {
 		log.Debug().Msg("Sending post-inform request")
 		resp, err := s.request(ctx, &client, nextEnv)
@@ -158,6 +153,10 @@ func (s *Server) makeInformEnvelope() rpc.EnvelopeEncoder {
 	params := []rpc.ParameterValueEncoder{
 		s.dm.ConnectionRequestURL().Encode(),
 	}
+	for _, p := range s.dm.NotifyParams {
+		params = append(params, s.dm.GetValue(p).Encode())
+	}
+	s.dm.NotifyParams = []string{}
 
 	env := newEnvelope()
 	env.Body.Inform = &rpc.InformRequestEncoder{
@@ -205,6 +204,11 @@ func (s *Server) request(ctx context.Context, client *http.Client, env *rpc.Enve
 		logger := log.Info().Str("method", env.Method())
 		if env.Body.Inform != nil {
 			logger.Strs("events", s.dm.PendingEvents())
+		}
+		if env.Body.Fault != nil {
+			f := env.Body.Fault.Detail.Fault
+			logger.Str("code", f.FaultCode.String())
+			logger.Str("error", f.FaultString)
 		}
 		logger.Msg("Sending envelope")
 

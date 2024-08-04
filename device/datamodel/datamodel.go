@@ -20,13 +20,14 @@ import (
 )
 
 type DataModel struct {
-	Version          DataModelVersion
-	Bootstrapped     bool
-	RetryAttempts    uint32
-	CommandKey       string
-	Events           []string
-	TransferComplete *rpc.TransferCompleteRequestEncoder
-	Values           map[string]Parameter
+	Version       DataModelVersion
+	Bootstrapped  bool
+	RetryAttempts uint32
+	CommandKey    string
+	Events        []string
+	NotifyParams  []string
+	Values        map[string]Parameter
+	DownUntil     time.Time
 
 	lock sync.RWMutex
 }
@@ -474,14 +475,6 @@ func (dm *DataModel) SetCommandKey(ck string) {
 
 func (dm *DataModel) GetCommandKey() string {
 	return dm.CommandKey
-}
-
-func (dm *DataModel) TryGetTransferComplete() *rpc.TransferCompleteRequestEncoder {
-	tcr := dm.TransferComplete
-	if tcr != nil {
-		dm.TransferComplete = nil
-	}
-	return tcr
 }
 
 func (dm *DataModel) newParameter(path string) Parameter {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"time"
 
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -19,16 +20,17 @@ const (
 var ErrNoCreds = errors.New("username/password missing")
 
 var Config struct {
-	Host          string `env:"API_HOST"`
-	Port          uint16 `env:"API_PORT, default=7547"`
-	ACSURL        string `env:"ACS_URL, required"`
-	SerialNumber  string `env:"SERIAL_NUMBER, required"`
-	DataModelPath string `env:"DATAMODEL_PATH, required"`
-	StateFilePath string `env:"STATE_PATH, default=state.json"`
-	ACSAuth       string `env:"ACS_AUTH, default=none"`
-	ACSUsername   string `env:"ACS_USERNAME"`
-	ACSPassword   string `env:"ACS_PASSWORD"`
-	LogLevel      string `env:"LOG_LEVEL, default=info"`
+	Host          string        `env:"API_HOST"`
+	Port          uint16        `env:"API_PORT, default=7547"`
+	ACSURL        string        `env:"ACS_URL, required"`
+	SerialNumber  string        `env:"SERIAL_NUMBER, required"`
+	DataModelPath string        `env:"DATAMODEL_PATH, required"`
+	StateFilePath string        `env:"STATE_PATH, default=state.json"`
+	UpgradeDelay  time.Duration `env:"UPGRADE_DELAY, default=15s"`
+	ACSAuth       string        `env:"ACS_AUTH, default=none"`
+	ACSUsername   string        `env:"ACS_USERNAME"`
+	ACSPassword   string        `env:"ACS_PASSWORD"`
+	LogLevel      string        `env:"LOG_LEVEL, default=info"`
 }
 
 func LoadConfig(ctx context.Context) error {

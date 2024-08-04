@@ -63,6 +63,14 @@ func New(dm *datamodel.DataModel) *Server {
 }
 
 func (s *Server) handleConnectionRequest(w http.ResponseWriter, r *http.Request) {
+	// Simulate downtime
+	if s.dm.DownUntil.After(time.Now()) {
+		retryAfter := int(time.Until(s.dm.DownUntil).Seconds())
+		w.WriteHeader(http.StatusServiceUnavailable)
+		w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
+		return
+	}
+
 	log.Info().Msg("Received HTTP connection request")
 	s.dm.AddEvent(rpc.EventConnectionRequest)
 	go s.Inform()

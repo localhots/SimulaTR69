@@ -23,20 +23,22 @@ func (s *Server) handleDownload(envID string, r *rpc.DownloadRequest) rpc.Envelo
 	if r.Username != "" {
 		req.SetBasicAuth(r.Username, r.Password)
 	}
+	log.Debug().Str("url", r.URL).Msg("Downloading file")
 	hresp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return resp.WithFault(rpc.FaultInternalError)
+		return resp.WithFaultMsg(rpc.FaultInternalError, err.Error())
 	}
 	if hresp.Body == nil {
-		return resp.WithFault(rpc.FaultInternalError)
+		return resp.WithFaultMsg(rpc.FaultInternalError, "firmware file is empty")
 	}
 	defer hresp.Body.Close()
 	b, err := io.ReadAll(hresp.Body)
 	if err != nil {
-		return resp.WithFault(rpc.FaultInternalError)
+		return resp.WithFaultMsg(rpc.FaultInternalError, err.Error())
 	}
 	var status int
 	if r.FileType == rpc.FileTypeFirmwareUpgradeImage {
+		log.Debug().Msg("Parsing firmware file")
 		status = rpc.DownloadNotCompleted
 		var ver struct {
 			Version string `json:"version"`
@@ -45,10 +47,17 @@ func (s *Server) handleDownload(envID string, r *rpc.DownloadRequest) rpc.Envelo
 			return resp.WithFault(rpc.FaultInternalError)
 		}
 		if ver.Version != "" {
+			log.Info().Str("version", ver.Version).Msg("Upgrading firmware")
 			s.dm.SetFirmwareVersion(ver.Version)
-			// schedule message
+			s.dm.AddEvent(rpc.EventTransferComplete)
+			s.dm.AddEvent(rpc.EventBoot)
+			status = rpc.DownloadNotCompleted
+			s.dm.NotifyParams = append(s.dm.NotifyParams, "DeviceInfo.SoftwareVersion")
+			// Stop informs for the upgrade delay duration
+			s.dm.SetPeriodicInformTime(time.Now().Add(Config.UpgradeDelay))
+			s.ResetInformTimer()
 		} else {
-			return resp.WithFault(rpc.FaultInternalError)
+			return resp.WithFaultMsg(rpc.FaultInternalError, "incompatible firmware")
 		}
 	} else {
 		status = rpc.DownloadCompleted
