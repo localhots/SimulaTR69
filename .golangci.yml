@@ -1,9 +1,11 @@
 run:
-  timeout: "5m"
+  timeout: 30s
+
 output:
   sort-results: true
   sort-order:
     - file
+
 linters:
   enable:
     - bodyclose
@@ -35,19 +37,3 @@ linters:
 linters-settings:
   gocyclo:
     min-complexity: 10
-  mnd:
-    ignored-numbers:
-      - "2"
-      - "0600"
-  gosec:
-    config:
-      G306: "0644"
-issues:
-  exclude-files:
-    - (^|/)(gen|design)($|/)
-    - _test\.go$
-  include:
-    # don't suppress missing exported method/function parameters
-    - EXC0012
-    # don't suppress missing package level comment
-    #    - EXC0015
