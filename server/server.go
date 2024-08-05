@@ -17,20 +17,24 @@ import (
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
+// Server is a server that can connect to an ACS and receive connection
+// requests.
 type Server struct {
-	httpServer      *http.Server
-	dm              *datamodel.DataModel
-	cookies         http.CookieJar
-	resetIformTimer chan struct{}
+	httpServer           *http.Server
+	dm                   *datamodel.DataModel
+	cookies              http.CookieJar
+	informScheduleUpdate chan struct{}
 }
 
-func (s *Server) Start() error {
+// Start starts the server.
+func (s *Server) Start(ctx context.Context) error {
 	log.Info().Str("server_url", s.URL()).Msg("Starting server")
 	log.Info().Str("acs_url", Config.ACSURL).Msg("Connecting to ACS")
-	go s.periodicInform()
+	go s.periodicInform(ctx)
 	return s.httpServer.ListenAndServe()
 }
 
+// Stop stops the server.
 func (s *Server) Stop(ctx context.Context) error {
 	if err := s.dm.SaveState(Config.StateFilePath); err != nil {
 		return fmt.Errorf("save state: %w", err)
@@ -38,10 +42,12 @@ func (s *Server) Stop(ctx context.Context) error {
 	return s.httpServer.Shutdown(ctx)
 }
 
+// URL returns the URL of the server.
 func (s *Server) URL() string {
 	return fmt.Sprintf("http://%s:%d/cwmp", Config.Host, Config.Port)
 }
 
+// New creates a new server instance.
 func New(dm *datamodel.DataModel) *Server {
 	mux := http.NewServeMux()
 	jar, _ := cookiejar.New(nil)
@@ -52,10 +58,10 @@ func New(dm *datamodel.DataModel) *Server {
 		WriteTimeout: 5 * time.Second,
 	}
 	s := &Server{
-		httpServer:      httpServer,
-		dm:              dm,
-		cookies:         jar,
-		resetIformTimer: make(chan struct{}, 1),
+		httpServer:           httpServer,
+		dm:                   dm,
+		cookies:              jar,
+		informScheduleUpdate: make(chan struct{}, 1),
 	}
 	mux.HandleFunc("/", s.handleConnectionRequest)
 	s.dm.SetConnectionRequestURL(s.URL())
@@ -73,9 +79,10 @@ func (s *Server) handleConnectionRequest(w http.ResponseWriter, r *http.Request)
 
 	log.Info().Msg("Received HTTP connection request")
 	s.dm.AddEvent(rpc.EventConnectionRequest)
-	go s.Inform()
+	go s.Inform(r.Context())
 }
 
+// nolint:gocyclo
 func (s *Server) handleEnvelope(env *rpc.EnvelopeDecoder) rpc.EnvelopeEncoder {
 	envID := env.Header.ID.Value
 	switch {
@@ -148,7 +155,7 @@ func (s *Server) pretendOfflineFor(dur time.Duration) {
 	downUntil := time.Now().Add(dur)
 	s.dm.SetDownUntil(downUntil)
 	s.dm.SetPeriodicInformTime(downUntil)
-	s.ResetInformTimer()
+	s.resetInformTimer()
 }
 
 var envelopeID uint64

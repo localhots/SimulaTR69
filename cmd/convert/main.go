@@ -7,6 +7,7 @@ import (
 	"encoding/csv"
 	"encoding/xml"
 	"flag"
+	"fmt"
 	"os"
 	"slices"
 	"strconv"
@@ -36,7 +37,13 @@ func main() {
 
 	switch *typ {
 	case "GetParameterValuesResponse":
-		save(*dest, convertGetParameterValuesResponse(read(*source)))
+		pvr := read(*source)
+		dm := convertGetParameterValuesResponse(pvr)
+		if err := save(*dest, dm); err != nil {
+			log.Fatal().Err(err).Msg("Failed to save datamodel file")
+		}
+	default:
+		log.Fatal().Str("type", *typ).Msg("Unknown format")
 	}
 }
 
@@ -48,10 +55,10 @@ func read(path string) []byte {
 	return b
 }
 
-func save(path string, params []datamodel.Parameter) {
+func save(path string, params []datamodel.Parameter) error {
 	fd, err := os.Create(path)
 	if err != nil {
-		log.Fatal().Err(err).Str("path", path).Msg("Failed to create destination file")
+		return fmt.Errorf("create destination file: %s", path)
 	}
 	defer fd.Close()
 
@@ -60,16 +67,26 @@ func save(path string, params []datamodel.Parameter) {
 	})
 
 	w := csv.NewWriter(fd)
-	w.Write([]string{"Parameter", "Object", "Writable", "Value", "Type"})
+	err = w.Write([]string{"Parameter", "Object", "Writable", "Value", "Type"})
+	if err != nil {
+		return fmt.Errorf("write csv header: %w", err)
+	}
 	for _, p := range params {
-		w.Write([]string{p.Path, strconv.FormatBool(p.Object), strconv.FormatBool(p.Writable), p.Value, p.Type})
+		err := w.Write([]string{p.Path, strconv.FormatBool(p.Object), strconv.FormatBool(p.Writable), p.Value, p.Type})
+		if err != nil {
+			return fmt.Errorf("write csv row: %w", err)
+		}
 	}
 	w.Flush()
 	if err := w.Error(); err != nil {
-		log.Fatal().Err(err).Str("path", path).Msg("Failed to write to destination file")
+		return fmt.Errorf("csv write error: %w", err)
 	}
+
+	return nil
 }
 
+// FIXME: cyclo complexity is too high, rewrite it
+// nolint:gocyclo,musttag
 func convertGetParameterValuesResponse(b []byte) []datamodel.Parameter {
 	var gpv struct {
 		XMLName       xml.Name `xml:"GetParameterValuesResponse"`

@@ -13,12 +13,17 @@ import (
 )
 
 const (
+	// AuthDigest an identifier for HTTP digest access authentication.
 	AuthDigest = "digest"
-	AuthNone   = "none"
+	// AuthNone an identifier for no HTTP authentication.
+	AuthNone = "none"
 )
 
+// ErrNoCreds is returned when ACS authentication is configured for digest
+// access authentication but no credentials are provided.
 var ErrNoCreds = errors.New("username/password missing")
 
+// Config is a global configuration store.
 var Config struct {
 	// Host is the host name or IP address used by the simulator to accept
 	// connection requests. If no value is provided it will be automatically
@@ -56,6 +61,7 @@ var Config struct {
 	LogLevel string `env:"LOG_LEVEL, default=info"`
 }
 
+// LoadConfig attempts to load configuration from environment variables.
 func LoadConfig(ctx context.Context) error {
 	log.Info().Msg("Loading configuration")
 	err := envconfig.Process(ctx, &Config)

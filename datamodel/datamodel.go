@@ -15,11 +15,12 @@ import (
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
+// DataModel describes a stateful CPE datamodel.
 type DataModel struct {
 	Values       map[string]Parameter
 	Bootstrapped bool
 
-	version       Version
+	version       version
 	commandKey    string
 	events        []string
 	notifyParams  []string
@@ -28,11 +29,12 @@ type DataModel struct {
 	lock          sync.RWMutex
 }
 
-type Version string
+// version is a datamodel version identifier.
+type version string
 
 const (
-	TR098 Version = "TR098"
-	TR181 Version = "TR181"
+	tr098 version = "TR098"
+	tr181 version = "TR181"
 
 	tr098Prefix = "InternetGatewayDevice."
 	tr181Prefix = "Device."
@@ -42,7 +44,8 @@ const (
 // Accessors
 //
 
-func (dm *DataModel) Get(path string) []Parameter {
+// GetAll returns one or more parameters prefixed with the given path.
+func (dm *DataModel) GetAll(path string) []Parameter {
 	dm.lock.RLock()
 	defer dm.lock.RUnlock()
 
@@ -60,6 +63,8 @@ func (dm *DataModel) Get(path string) []Parameter {
 	return params
 }
 
+// GetValue returns a parameter value with the given path. If it does not exist
+// a placeholder is returned.
 func (dm *DataModel) GetValue(path string) Parameter {
 	dm.lock.RLock()
 	defer dm.lock.RUnlock()
@@ -72,6 +77,7 @@ func (dm *DataModel) GetValue(path string) Parameter {
 	return v
 }
 
+// SetValue sets the value of a given parameter.
 func (dm *DataModel) SetValue(path, val string) {
 	dm.lock.Lock()
 	defer dm.lock.Unlock()
@@ -85,6 +91,7 @@ func (dm *DataModel) SetValue(path, val string) {
 	dm.Values[path] = v
 }
 
+// SetValues saves multiple parameter values.
 func (dm *DataModel) SetValues(params []Parameter) {
 	dm.lock.Lock()
 	defer dm.lock.Unlock()
@@ -100,6 +107,7 @@ func (dm *DataModel) SetValues(params []Parameter) {
 	}
 }
 
+// CanSetValue returns a non-nil fault code if a value can't be set.
 func (dm *DataModel) CanSetValue(param Parameter) *rpc.FaultCode {
 	dm.lock.RLock()
 	defer dm.lock.RUnlock()
@@ -119,6 +127,7 @@ func (dm *DataModel) CanSetValue(param Parameter) *rpc.FaultCode {
 	return nil
 }
 
+// SetParameterAttribute changes parameter value attributes.
 func (dm *DataModel) SetParameterAttribute(name string, notif int, notifChange bool, acl []string, aclChange bool) {
 	dm.lock.Lock()
 	defer dm.lock.Unlock()
@@ -134,6 +143,7 @@ func (dm *DataModel) SetParameterAttribute(name string, notif int, notifChange b
 	}
 }
 
+// AddObject create a new object and returns the index if successful.
 func (dm *DataModel) AddObject(name string) (int, error) {
 	dm.lock.Lock()
 	defer dm.lock.Unlock()
@@ -178,6 +188,7 @@ func (dm *DataModel) AddObject(name string) (int, error) {
 	return next, nil
 }
 
+// DeleteObject deletes the given object.
 func (dm *DataModel) DeleteObject(name string) {
 	dm.lock.Lock()
 	defer dm.lock.Unlock()
@@ -191,6 +202,9 @@ func (dm *DataModel) DeleteObject(name string) {
 	}
 }
 
+// ParameterNames returns all subparameters in the given path. If nextLevel is
+// set to true the list of parameters goes one level deeper.
+// nolint:nestif
 func (dm *DataModel) ParameterNames(path string, nextLevel bool) []Parameter {
 	var reg *regexp.Regexp
 	if path == "" {
@@ -227,6 +241,15 @@ func (dm *DataModel) ParameterNames(path string, nextLevel bool) []Parameter {
 // Events
 //
 
+// PendingEvents returns all events to be advertised during the next inform
+// message.
+func (dm *DataModel) PendingEvents() []string {
+	dm.lock.RLock()
+	defer dm.lock.RUnlock()
+	return dm.events
+}
+
+// AddEvent adds a new event to be advertised during the next inform message.
 func (dm *DataModel) AddEvent(evt string) {
 	dm.lock.Lock()
 	defer dm.lock.Unlock()
@@ -236,12 +259,7 @@ func (dm *DataModel) AddEvent(evt string) {
 	}
 }
 
-func (dm *DataModel) PendingEvents() []string {
-	dm.lock.RLock()
-	defer dm.lock.RUnlock()
-	return dm.events
-}
-
+// ClearEvents removes all pending inform events.
 func (dm *DataModel) ClearEvents() {
 	dm.lock.Lock()
 	defer dm.lock.Unlock()
@@ -252,10 +270,13 @@ func (dm *DataModel) ClearEvents() {
 // Bootstrap
 //
 
+// IsBootstrapped returns true if CPE is had a successful bootstrap message
+// exchange.
 func (dm *DataModel) IsBootstrapped() bool {
 	return dm.Bootstrapped
 }
 
+// SetBootstrapped assigns the bootstrap flag to the given value.
 func (dm *DataModel) SetBootstrapped(b bool) {
 	dm.Bootstrapped = b
 }
@@ -264,14 +285,17 @@ func (dm *DataModel) SetBootstrapped(b bool) {
 // Retry attempts
 //
 
+// RetryAttempts returns the number of currently take attepts to inform.
 func (dm *DataModel) RetryAttempts() uint32 {
 	return dm.retryAttempts
 }
 
+// IncrRetryAttempts increments the number of infrom attempts by one.
 func (dm *DataModel) IncrRetryAttempts() {
 	atomic.AddUint32(&dm.retryAttempts, 1)
 }
 
+// ResetRetryAttempts resets the number of infrom attempts to zero.
 func (dm *DataModel) ResetRetryAttempts() {
 	atomic.SwapUint32(&dm.retryAttempts, 0)
 }
@@ -280,42 +304,50 @@ func (dm *DataModel) ResetRetryAttempts() {
 // Command key
 //
 
+// CommandKey returns the current command key.
+func (dm *DataModel) CommandKey() string {
+	dm.lock.Lock()
+	defer dm.lock.Unlock()
+	return dm.commandKey
+}
+
+// SetCommandKey sets the command key value.
 func (dm *DataModel) SetCommandKey(ck string) {
 	dm.lock.Lock()
 	defer dm.lock.Unlock()
 	dm.commandKey = ck
 }
 
-func (dm *DataModel) GetCommandKey() string {
-	dm.lock.Lock()
-	defer dm.lock.Unlock()
-	return dm.commandKey
-}
-
 //
 // Simulated downtime
 //
 
-func (dm *DataModel) SetDownUntil(du time.Time) {
-	dm.downUntil = du
-}
-
+// DownUntil returns the time the CPE will stop pretending to be offline.
 func (dm *DataModel) DownUntil() time.Time {
 	return dm.downUntil
+}
+
+// SetDownUntil sets the time until the CPE should pretend to be offline.
+func (dm *DataModel) SetDownUntil(du time.Time) {
+	dm.downUntil = du
 }
 
 //
 // Parameter change notification
 //
 
+// NotifyParams returns a list of parameters that should be included in the next
+// inform message.
 func (dm *DataModel) NotifyParams() []string {
 	return dm.notifyParams
 }
 
+// NotifyParam subscribes the ACS for the given parameter value.
 func (dm *DataModel) NotifyParam(path string) {
 	dm.notifyParams = append(dm.notifyParams, path)
 }
 
+// ClearNotifyParams clears all previous parameter notifications.
 func (dm *DataModel) ClearNotifyParams() {
 	dm.notifyParams = []string{}
 }
@@ -336,11 +368,11 @@ func (dm *DataModel) newParameter(path string) Parameter {
 func (dm *DataModel) detectVersion() {
 	for k := range dm.Values {
 		if strings.HasPrefix(k, tr098Prefix) {
-			dm.version = TR098
+			dm.version = tr098
 			return
 		}
 		if strings.HasPrefix(k, tr181Prefix) {
-			dm.version = TR181
+			dm.version = tr181
 			return
 		}
 	}
@@ -348,9 +380,9 @@ func (dm *DataModel) detectVersion() {
 
 func (dm *DataModel) prefixedPath(path string) string {
 	switch dm.version {
-	case TR098:
+	case tr098:
 		return tr098Prefix + path
-	case TR181:
+	case tr181:
 		return tr181Prefix + path
 	default:
 		return path
@@ -373,9 +405,4 @@ func (dm *DataModel) firstValue(paths ...string) string {
 func (dm *DataModel) parent(path string) string {
 	tokens := strings.Split(path, ".")
 	return strings.Join(tokens[:len(tokens)-1], ".")
-}
-
-func (dm *DataModel) exists(path string) bool {
-	_, ok := dm.Values[path]
-	return ok
 }

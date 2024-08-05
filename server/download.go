@@ -39,7 +39,6 @@ func (s *Server) handleDownload(envID string, r *rpc.DownloadRequest) rpc.Envelo
 	var status int
 	if r.FileType == rpc.FileTypeFirmwareUpgradeImage {
 		log.Debug().Msg("Parsing firmware file")
-		status = rpc.DownloadNotCompleted
 		var ver struct {
 			Version string `json:"version"`
 		}

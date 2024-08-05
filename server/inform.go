@@ -8,23 +8,21 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 
 	"github.com/icholy/digest"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
-func (s *Server) periodicInform() {
+func (s *Server) periodicInform(ctx context.Context) {
 	for {
 		it := s.dm.PeriodicInformTime()
 		if it.After(time.Now()) {
 			log.Info().Time("time", it).Msg("Inform delayed")
 			time.Sleep(time.Until(it))
-			s.Inform()
+			s.Inform(ctx)
 		}
 
 		if s.dm.PeriodicInformEnabled() {
@@ -33,49 +31,33 @@ func (s *Server) periodicInform() {
 			select {
 			case <-time.After(ii):
 				s.dm.AddEvent(rpc.EventPeriodic)
-				s.Inform()
-			case <-s.resetIformTimer:
+				s.Inform(ctx)
+			case <-s.informScheduleUpdate:
 			}
 		} else {
 			log.Info().Msg("Periodic inform disabled")
-			<-s.resetIformTimer
+			<-s.informScheduleUpdate
 		}
 	}
 }
 
-func (s *Server) ResetInformTimer() {
-	s.resetIformTimer <- struct{}{}
+func (s *Server) resetInformTimer() {
+	s.informScheduleUpdate <- struct{}{}
 }
 
-func (s *Server) Inform() {
-	ctx := context.Background()
+// Inform initiates an inform message to the ACS.
+// nolint:gocyclo
+func (s *Server) Inform(ctx context.Context) {
 	u, err := url.Parse(Config.ACSURL)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to parse ACS URL")
 	}
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", u.Hostname(), u.Port()))
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to create a TCP connection to ACS")
-		return
-	}
-	defer conn.Close()
 
-	tr := &http.Transport{
-		DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
-			return conn, nil
-		},
-		Dial: func(network, addr string) (net.Conn, error) {
-			return conn, nil
-		},
+	client, closeFn, err := newClient(u.Hostname(), u.Port())
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to connect to ACS")
 	}
-	client := http.Client{Transport: tr}
-	if Config.ACSAuth == AuthDigest {
-		client.Transport = &digest.Transport{
-			Transport: tr,
-			Username:  Config.ACSUsername,
-			Password:  Config.ACSPassword,
-		}
-	}
+	defer func() { _ = closeFn() }()
 
 	informEnv := s.makeInformEnvelope()
 	resp, err := s.request(ctx, &client, &informEnv)
@@ -112,18 +94,17 @@ func (s *Server) Inform() {
 			log.Info().Msg("Got empty response from ACS, inform finished")
 			break
 		}
-
 		b, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to read request")
 			return
 		}
+		_ = resp.Body.Close()
 		if len(b) == 0 {
 			log.Info().Msg("Got empty response from ACS, inform finished")
 			break
-		} else {
-			log.Trace().Msg("Response from ACS\n" + prettyXML(b))
 		}
+		log.Trace().Msg("Response from ACS\n" + prettyXML(b))
 
 		acsRequestEnv, err := rpc.Decode(b)
 		if err != nil {
@@ -147,7 +128,7 @@ func (s *Server) makeInformEnvelope() rpc.EnvelopeEncoder {
 	for _, evt := range s.dm.PendingEvents() {
 		events = append(events, rpc.EventStruct{
 			EventCode:  evt,
-			CommandKey: s.dm.GetCommandKey(),
+			CommandKey: s.dm.CommandKey(),
 		})
 	}
 	params := []rpc.ParameterValueEncoder{
@@ -181,19 +162,9 @@ func (s *Server) makeInformEnvelope() rpc.EnvelopeEncoder {
 	return env
 }
 
-func (s *Server) respond(w http.ResponseWriter, env rpc.EnvelopeEncoder) {
-	b, err := env.EncodePretty()
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to encode envelope")
-	}
-	_, err = w.Write(b)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to write response")
-	}
-}
-
 // Returns false only if request to ACS was attempted and failed.
 func (s *Server) request(ctx context.Context, client *http.Client, env *rpc.EnvelopeEncoder) (*http.Response, error) {
+	s.debugEnvelope(env)
 	var buf io.Reader
 	if env != nil {
 		b, err := env.EncodePretty()
@@ -201,30 +172,6 @@ func (s *Server) request(ctx context.Context, client *http.Client, env *rpc.Enve
 			return nil, fmt.Errorf("encode envelope: %w", err)
 		}
 		buf = bytes.NewBuffer(b)
-		logger := log.Info().Str("method", env.Method())
-		if env.Body.Inform != nil {
-			logger.Strs("events", s.dm.PendingEvents())
-		}
-		if env.Body.Fault != nil {
-			f := env.Body.Fault.Detail.Fault
-			logger.Str("code", f.FaultCode.String())
-			logger.Str("error", f.FaultString)
-		}
-		logger.Msg("Sending envelope")
-
-		gpn := env.Body.GetParameterNamesResponse
-		gpv := env.Body.GetParameterValuesResponse
-		if gpn != nil && len(gpn.ParameterList.Parameters) > 100 {
-			log.Debug().Msg("Sending all parameter names")
-		} else if gpv != nil && len(gpv.ParameterList.ParameterValues) > 100 {
-			log.Debug().Msg("Sending all parameter values")
-		} else {
-			if log.Logger.GetLevel() == zerolog.TraceLevel {
-				log.Trace().Msg("Request to ACS\n" + strings.TrimSpace(string(b)))
-			} else {
-				log.Debug().Msg("Request to ACS")
-			}
-		}
 	} else {
 		log.Info().Msg("Sending empty POST request")
 	}
@@ -245,4 +192,56 @@ func (s *Server) request(ctx context.Context, client *http.Client, env *rpc.Enve
 	s.cookies.SetCookies(req.URL, resp.Cookies())
 
 	return resp, nil
+}
+
+func (s *Server) debugEnvelope(env *rpc.EnvelopeEncoder) {
+	logger := log.Info().Str("method", env.Method())
+	if env.Body.Inform != nil {
+		logger.Strs("events", s.dm.PendingEvents())
+	}
+	if env.Body.Fault != nil {
+		f := env.Body.Fault.Detail.Fault
+		logger.Str("code", f.FaultCode.String())
+		logger.Str("error", f.FaultString)
+	}
+	logger.Msg("Sending envelope")
+
+	gpn := env.Body.GetParameterNamesResponse
+	gpv := env.Body.GetParameterValuesResponse
+	switch {
+	case gpn != nil && len(gpn.ParameterList.Parameters) > 100:
+		log.Debug().Msg("Sending all parameter names")
+	case gpv != nil && len(gpv.ParameterList.ParameterValues) > 100:
+		log.Debug().Msg("Sending all parameter values")
+	default:
+		log.Debug().Msg("Request to ACS")
+	}
+}
+
+func newClient(host, port string) (http.Client, func() error, error) {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", host, port))
+	if err != nil {
+		return http.Client{}, nil, fmt.Errorf("create a TCP connection to ACS: %w", err)
+	}
+	defer conn.Close()
+
+	tr := &http.Transport{
+		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+			return conn, nil
+		},
+		Dial: func(_, _ string) (net.Conn, error) {
+			return conn, nil
+		},
+	}
+	client := http.Client{Transport: tr}
+
+	if Config.ACSAuth == AuthDigest {
+		client.Transport = &digest.Transport{
+			Transport: tr,
+			Username:  Config.ACSUsername,
+			Password:  Config.ACSPassword,
+		}
+	}
+
+	return client, conn.Close, nil
 }

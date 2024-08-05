@@ -12,7 +12,7 @@ func (s *Server) handleGetParameterValues(envID string, r *rpc.GetParameterValue
 	names := r.ParameterNames.Names
 	params := []rpc.ParameterValueEncoder{}
 	for _, path := range names {
-		batch := s.dm.Get(path)
+		batch := s.dm.GetAll(path)
 		for _, p := range batch {
 			params = append(params, rpc.ParameterValueEncoder{
 				Name: p.Path,
