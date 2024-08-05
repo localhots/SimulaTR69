@@ -14,6 +14,7 @@ import (
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
+// Load looks or given datamodel and state paths and loads them.
 func Load(dmPath, statePath string) (*DataModel, error) {
 	log.Info().Str("file", dmPath).Msg("Loading datamodel")
 	dm, err := loadState(statePath)
@@ -37,6 +38,7 @@ func Load(dmPath, statePath string) (*DataModel, error) {
 	return dm, nil
 }
 
+// SaveState saves the state to the given file.
 func (dm *DataModel) SaveState(stateFile string) error {
 	if stateFile == "" {
 		return nil
@@ -86,6 +88,7 @@ func loadDataModel(filePath string) (*DataModel, error) {
 	var headerRead bool
 	for {
 		f, err := r.Read()
+		// nolint:errorlint
 		if err == io.EOF {
 			break
 		}

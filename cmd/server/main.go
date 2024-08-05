@@ -44,11 +44,13 @@ func main() {
 
 	srv := server.New(dm)
 	go func() {
-		if err := srv.Start(); err != nil && err != http.ErrServerClosed {
+		// FIXME: something's off with error checking here
+		// nolint:errorlint
+		if err := srv.Start(ctx); err != nil && err != http.ErrServerClosed {
 			log.Fatal().Err(err).Msg("Failed to start server")
 		}
 	}()
-	srv.Inform()
+	srv.Inform(ctx)
 
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)

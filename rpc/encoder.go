@@ -1,3 +1,4 @@
+// nolint:revive
 package rpc
 
 import (
@@ -49,6 +50,7 @@ type BodyEncoder struct {
 // Payloads
 //
 
+// nolint:stylecheck
 type InformRequestEncoder struct {
 	DeviceId      DeviceID
 	Event         EventEncoder
@@ -228,6 +230,7 @@ func NewEnvelope(id string) EnvelopeEncoder {
 	}
 }
 
+// nolint:gocyclo
 func (ee EnvelopeEncoder) Method() string {
 	switch {
 	case ee.Body.Inform != nil:

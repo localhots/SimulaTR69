@@ -1,3 +1,4 @@
+// nolint:revive
 package rpc
 
 import (
@@ -220,6 +221,7 @@ type SetParameterAttributesStruct struct {
 	}
 }
 
+// Decode attempts to decode given payload into a SOAP envelope.
 func Decode(b []byte) (*EnvelopeDecoder, error) {
 	var env EnvelopeDecoder
 	err := xml.Unmarshal(b, &env)

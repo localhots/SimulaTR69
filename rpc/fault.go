@@ -1,3 +1,4 @@
+// nolint:revive
 package rpc
 
 //go:generate go run golang.org/x/tools/cmd/stringer@latest -type=FaultCode -trimprefix=Fault -output=fault_string.go

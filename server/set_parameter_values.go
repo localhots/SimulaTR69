@@ -44,7 +44,7 @@ func (s *Server) handleSetParameterValues(envID string, r *rpc.SetParameterValue
 		}
 	}
 	if resetPeriodicInform {
-		defer s.ResetInformTimer()
+		defer s.resetInformTimer()
 	}
 
 	s.dm.SetValues(params)
