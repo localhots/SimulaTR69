@@ -19,9 +19,9 @@ import (
 func (s *Server) periodicInform(ctx context.Context) {
 	for {
 		it := s.dm.PeriodicInformTime()
-		if it.After(time.Now()) {
+		if delay := time.Until(it); delay > 0 {
 			log.Info().Time("time", it).Msg("Inform delayed")
-			time.Sleep(time.Until(it))
+			time.Sleep(delay)
 			s.Inform(ctx)
 		}
 
@@ -164,9 +164,9 @@ func (s *Server) makeInformEnvelope() rpc.EnvelopeEncoder {
 
 // Returns false only if request to ACS was attempted and failed.
 func (s *Server) request(ctx context.Context, client *http.Client, env *rpc.EnvelopeEncoder) (*http.Response, error) {
-	s.debugEnvelope(env)
 	var buf io.Reader
 	if env != nil {
+		s.debugEnvelope(env)
 		b, err := env.EncodePretty()
 		if err != nil {
 			return nil, fmt.Errorf("encode envelope: %w", err)
@@ -223,7 +223,6 @@ func newClient(host, port string) (http.Client, func() error, error) {
 	if err != nil {
 		return http.Client{}, nil, fmt.Errorf("create a TCP connection to ACS: %w", err)
 	}
-	defer conn.Close()
 
 	tr := &http.Transport{
 		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {

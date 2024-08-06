@@ -79,7 +79,7 @@ func (s *Server) handleConnectionRequest(w http.ResponseWriter, r *http.Request)
 
 	log.Info().Msg("Received HTTP connection request")
 	s.dm.AddEvent(rpc.EventConnectionRequest)
-	go s.Inform(r.Context())
+	go s.Inform(context.WithoutCancel(r.Context()))
 }
 
 // nolint:gocyclo
