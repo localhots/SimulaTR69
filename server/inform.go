@@ -171,6 +171,7 @@ func (s *Server) request(ctx context.Context, client *http.Client, env *rpc.Enve
 		if err != nil {
 			return nil, fmt.Errorf("encode envelope: %w", err)
 		}
+		log.Trace().Msg("Request from ACS\n" + prettyXML(b))
 		buf = bytes.NewBuffer(b)
 	} else {
 		log.Info().Msg("Sending empty POST request")
