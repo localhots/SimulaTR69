@@ -17,9 +17,13 @@ import (
 // Load looks or given datamodel and state paths and loads them.
 func Load(dmPath, statePath string) (*DataModel, error) {
 	log.Info().Str("file", dmPath).Msg("Loading datamodel")
-	dm, err := loadState(statePath)
-	if err != nil {
-		return nil, err
+	var dm *DataModel
+	var err error
+	if statePath != "" {
+		dm, err = loadState(statePath)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if dm == nil {
 		dm, err = loadDataModel(dmPath)
@@ -112,6 +116,17 @@ func loadDataModel(filePath string) (*DataModel, error) {
 			Type:     f[4],
 			Value:    f[3],
 		}
+
+		// Add parent object automatically if not defined explicitly
+		parent := dm.parent(p.Path)
+		if _, ok := dm.Values[parent]; !ok {
+			dm.Values[parent] = Parameter{
+				Path:     parent,
+				Object:   true,
+				Writable: true,
+			}
+		}
+
 		dm.Values[p.Path] = p
 	}
 
