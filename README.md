@@ -40,7 +40,7 @@ volumes:
 # Use
 
 All required methods are supported and should behave realistically, except
-Upload and Factory Reset currently don't do anything. There are quirks though.
+Upload currently don't do anything. There are quirks though.
 
 ## Connection Requests
 
