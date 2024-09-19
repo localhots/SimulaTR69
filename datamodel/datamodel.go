@@ -53,7 +53,11 @@ func (dm *DataModel) GetAll(path string) []Parameter {
 	if strings.HasSuffix(path, ".") {
 		for k, p := range dm.Values {
 			if strings.HasPrefix(k, path) {
+				if p.Type == "" {
+					continue
+				}
 				params = append(params, p)
+
 			}
 		}
 	} else if p, ok := dm.Values[path]; ok {

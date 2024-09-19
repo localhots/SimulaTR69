@@ -12,6 +12,9 @@ func (s *Server) handleGetParameterNames(envID string, r *rpc.GetParameterNamesR
 	names := s.dm.ParameterNames(r.ParameterPath, r.NextLevel)
 	params := make([]rpc.ParameterInfoStruct, 0, len(names))
 	for _, p := range names {
+		if p.Type == "" {
+			continue
+		}
 		params = append(params, rpc.ParameterInfoStruct{
 			Name:     p.Path,
 			Writable: p.Writable,
