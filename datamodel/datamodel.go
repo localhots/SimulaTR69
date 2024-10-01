@@ -341,8 +341,7 @@ func (dm *DataModel) SetDownUntil(du time.Time) {
 func (dm *DataModel) NotifyParams() []string {
 	params := []string{}
 	for _, p := range dm.Values {
-		switch p.Notification {
-		case rpc.AttributeNotificationPassive:
+		if p.Notification == rpc.AttributeNotificationPassive {
 			params = append(params, p.Path)
 		}
 	}

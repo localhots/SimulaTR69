@@ -16,7 +16,7 @@ func (s *Server) handleGetParameterAttributes(envID string, r *rpc.GetParameterA
 		for _, p := range batch {
 			attrs = append(attrs, rpc.ParameterAttributeStruct{
 				Name:         p.Path,
-				Notification: rpc.AttributeNotification(p.Notification),
+				Notification: p.Notification,
 				AccessList: rpc.AccessListEncoder{
 					ArrayType: rpc.ArrayType("xsd:string", len(p.ACL)),
 					Values:    p.ACL,

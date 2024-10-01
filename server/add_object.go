@@ -23,7 +23,7 @@ func (s *Server) handleAddObject(envID string, r *rpc.AddObjectRequest) rpc.Enve
 	s.dm.SetParameterKey(r.ParameterKey)
 
 	resp.Body.AddObjectResponse = &rpc.AddObjectResponseEncoder{
-		InstanceNumber: uint(i),
+		InstanceNumber: i,
 		Status:         0,
 	}
 	return resp

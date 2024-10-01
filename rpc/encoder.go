@@ -73,7 +73,7 @@ type GetParameterNamesResponseEncoder struct {
 }
 
 type AddObjectResponseEncoder struct {
-	InstanceNumber uint
+	InstanceNumber int
 	Status         int
 }
 

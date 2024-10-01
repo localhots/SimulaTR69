@@ -17,7 +17,7 @@ linters:
     - errchkjson
     - errorlint
     - errname
-    - exportloopref
+    - copyloopvar
     - goconst
     - gocritic
     - gocyclo
