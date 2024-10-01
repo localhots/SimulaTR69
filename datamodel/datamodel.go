@@ -134,7 +134,7 @@ func (dm *DataModel) SetParameterAttribute(name string, notif int, notifChange b
 
 	if p, ok := dm.Values[name]; ok {
 		if notifChange {
-			p.Notification = notif
+			p.Notification = rpc.AttributeNotification(notif)
 		}
 		if aclChange {
 			p.ACL = acl
@@ -339,7 +339,15 @@ func (dm *DataModel) SetDownUntil(du time.Time) {
 // NotifyParams returns a list of parameters that should be included in the next
 // inform message.
 func (dm *DataModel) NotifyParams() []string {
-	return dm.notifyParams
+	params := []string{}
+	for _, p := range dm.Values {
+		switch p.Notification {
+		case rpc.AttributeNotificationPassive:
+			params = append(params, p.Path)
+		}
+	}
+	params = append(params, dm.notifyParams...)
+	return params
 }
 
 // NotifyParam subscribes the ACS for the given parameter value.
@@ -381,8 +389,14 @@ func (dm *DataModel) detectVersion() {
 func (dm *DataModel) prefixedPath(path string) string {
 	switch dm.version {
 	case tr098:
+		if strings.HasPrefix(path, tr098Prefix) {
+			return path
+		}
 		return tr098Prefix + path
 	case tr181:
+		if strings.HasPrefix(path, tr181Prefix) {
+			return path
+		}
 		return tr181Prefix + path
 	default:
 		return path

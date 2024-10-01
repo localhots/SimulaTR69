@@ -24,12 +24,14 @@ type Server struct {
 	dm                   *datamodel.DataModel
 	cookies              http.CookieJar
 	informScheduleUpdate chan struct{}
+	startedAt            time.Time
 }
 
 // Start starts the server.
 func (s *Server) Start(ctx context.Context) error {
 	log.Info().Str("server_url", s.URL()).Msg("Starting server")
 	log.Info().Str("acs_url", Config.ACSURL).Msg("Connecting to ACS")
+	s.startedAt = time.Now()
 	go s.periodicInform(ctx)
 	return s.httpServer.ListenAndServe()
 }
@@ -156,6 +158,7 @@ func (s *Server) pretendOfflineFor(dur time.Duration) {
 	s.dm.SetDownUntil(downUntil)
 	s.dm.SetPeriodicInformTime(downUntil)
 	s.resetInformTimer()
+	s.startedAt = downUntil
 }
 
 var envelopeID uint64

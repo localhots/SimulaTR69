@@ -123,6 +123,7 @@ func (s *Server) Inform(ctx context.Context) {
 }
 
 func (s *Server) makeInformEnvelope() rpc.EnvelopeEncoder {
+	s.dm.SetUptime(time.Since(s.startedAt))
 	deviceID := s.dm.DeviceID()
 	events := []rpc.EventStruct{}
 	for _, evt := range s.dm.PendingEvents() {
@@ -148,7 +149,7 @@ func (s *Server) makeInformEnvelope() rpc.EnvelopeEncoder {
 			SerialNumber: deviceID.SerialNumber,
 		},
 		Event: rpc.EventEncoder{
-			ArrayType: rpc.ArrayType("cwmp:EventStruct", 1),
+			ArrayType: rpc.ArrayType("cwmp:EventStruct", len(events)),
 			Events:    events,
 		},
 		MaxEnvelopes: rpc.MaxEnvelopes,

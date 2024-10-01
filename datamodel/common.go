@@ -43,6 +43,7 @@ func (dm *DataModel) DeviceID() DeviceID {
 const (
 	pathSerialNumber           = "DeviceInfo.SerialNumber"
 	pathSoftwareVersion        = "DeviceInfo.SoftwareVersion"
+	pathUptime                 = "DeviceInfo.UpTime"
 	pathConnectionRequestURL   = "ManagementServer.ConnectionRequestURL"
 	pathParameterKey           = "ManagementServer.ParameterKey"
 	pathPeriodicInformEnable   = "ManagementServer.PeriodicInformEnable"
@@ -123,4 +124,8 @@ func (dm *DataModel) IsPeriodicInformParameter(name string) bool {
 // SetFirmwareVersion sets the new firmware version value.
 func (dm *DataModel) SetFirmwareVersion(ver string) {
 	dm.SetValue(pathSoftwareVersion, ver)
+}
+
+func (dm *DataModel) SetUptime(dur time.Duration) {
+	dm.SetValue(pathUptime, strconv.Itoa(int(dur/time.Second)))
 }

@@ -11,7 +11,7 @@ type Parameter struct {
 	Writable     bool
 	Type         string
 	Value        string
-	Notification int
+	Notification rpc.AttributeNotification
 	ACL          []string
 }
 
