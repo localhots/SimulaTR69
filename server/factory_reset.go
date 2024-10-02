@@ -7,7 +7,7 @@ import (
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
-func (s *Server) handleFactoryReset(envID string) rpc.EnvelopeEncoder {
+func (s *Server) handleFactoryReset(envID string) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "FactoryReset").Msg("Received message")
 	resp := rpc.NewEnvelope(envID)
 

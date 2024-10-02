@@ -60,7 +60,7 @@ func (s *Server) Inform(ctx context.Context) {
 	defer func() { _ = closeFn() }()
 
 	informEnv := s.makeInformEnvelope()
-	resp, err := s.request(ctx, &client, &informEnv)
+	resp, err := s.request(ctx, &client, informEnv)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make request")
 		s.dm.IncrRetryAttempts()
@@ -112,8 +112,10 @@ func (s *Server) Inform(ctx context.Context) {
 			return
 		}
 
-		acsResponseEnv := s.handleEnvelope(acsRequestEnv)
-		nextEnv = &acsResponseEnv
+		nextEnv = s.handleEnvelope(acsRequestEnv)
+		if nextEnv == nil {
+			return
+		}
 	}
 
 	events := informEnv.Body.Inform.Event.Events
@@ -122,7 +124,7 @@ func (s *Server) Inform(ctx context.Context) {
 	}
 }
 
-func (s *Server) makeInformEnvelope() rpc.EnvelopeEncoder {
+func (s *Server) makeInformEnvelope() *rpc.EnvelopeEncoder {
 	s.dm.SetUptime(time.Since(s.startedAt))
 	deviceID := s.dm.DeviceID()
 	events := []rpc.EventStruct{}
