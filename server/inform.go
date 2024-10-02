@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"net"
@@ -53,7 +54,7 @@ func (s *Server) Inform(ctx context.Context) {
 		log.Fatal().Err(err).Msg("Failed to parse ACS URL")
 	}
 
-	client, closeFn, err := newClient(u.Hostname(), u.Port())
+	client, closeFn, err := newClient(u.Hostname(), tcpPort(u))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to ACS")
 	}
@@ -247,4 +248,14 @@ func newClient(host, port string) (http.Client, func() error, error) {
 	}
 
 	return client, conn.Close, nil
+}
+
+func tcpPort(u *url.URL) string {
+	if u.Port() != "" {
+		return u.Port()
+	}
+	if u.Scheme == "https" {
+		return "443"
+	}
+	return "80"
 }
