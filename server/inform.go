@@ -236,6 +236,9 @@ func newClient(host, port string) (http.Client, func() error, error) {
 		Dial: func(_, _ string) (net.Conn, error) {
 			return conn, nil
 		},
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: !Config.ACSVerifyTLS,
+		},
 	}
 	client := http.Client{Transport: tr}
 

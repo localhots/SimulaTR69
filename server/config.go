@@ -14,6 +14,10 @@ import (
 
 // Config is a global configuration store.
 var Config struct {
+	// LogLevel controls how verbose the levels are. Supported values: trace,
+	// debug, info, warn, error, fatal, panic.
+	LogLevel string `env:"LOG_LEVEL, default=info"`
+
 	// Host is the host name or IP address used by the simulator to accept
 	// connection requests. If no value is provided it will be automatically
 	// resolved.
@@ -22,9 +26,6 @@ var Config struct {
 	// Port defines the port number used by the simulator to accept connection
 	// requests.
 	Port uint16 `env:"API_PORT, default=7547"`
-
-	// ACSURL is the URL for the ACS.
-	ACSURL string `env:"ACS_URL, required"`
 
 	// SerialNumber will overwrite the DeviceInfo.SerialNumber datamodel
 	// parameter value.
@@ -38,13 +39,8 @@ var Config struct {
 	// state file will trigger a BOOTSTRAP inform event.
 	StateFilePath string `env:"STATE_PATH, default=state.json"`
 
-	// RebootDelay defines how long the simulator should wait and drop incoming
-	// connection requests to pretend that it reboots.
-	RebootDelay time.Duration `env:"REBOOT_DELAY, default=5s"`
-
-	// UpgradeDelay defines how long the simulator should wait and drop incoming
-	// connection requests to pretend that software upgrades take time.
-	UpgradeDelay time.Duration `env:"UPGRADE_DELAY, default=15s"`
+	// ACSURL is the URL for the ACS.
+	ACSURL string `env:"ACS_URL, required"`
 
 	// ACSAuth configures authentication scheme for the ACS. It defaults to
 	// "none". Supported values: digest, none
@@ -56,9 +52,17 @@ var Config struct {
 	// ACSPassword is used to authenticate requests to the ACS.
 	ACSPassword string `env:"ACS_PASSWORD"`
 
-	// LogLevel controls how verbose the levels are. Supported values: trace,
-	// debug, info, warn, error, fatal, panic.
-	LogLevel string `env:"LOG_LEVEL, default=info"`
+	// ACSVerifyTLS when set to false ignores certificate errors when connecting
+	// to the ACS.
+	ACSVerifyTLS bool `env:"ACS_VERIFY_TLS, default=false"`
+
+	// RebootDelay defines how long the simulator should wait and drop incoming
+	// connection requests to pretend that it reboots.
+	RebootDelay time.Duration `env:"REBOOT_DELAY, default=5s"`
+
+	// UpgradeDelay defines how long the simulator should wait and drop incoming
+	// connection requests to pretend that software upgrades take time.
+	UpgradeDelay time.Duration `env:"UPGRADE_DELAY, default=15s"`
 }
 
 // ErrNoCreds is returned when ACS authentication is configured for digest
