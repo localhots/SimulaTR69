@@ -36,6 +36,9 @@ func (p Parameter) Encode() rpc.ParameterValueEncoder {
 func (p *Parameter) Normalize() {
 	if p.Object {
 		p.Type = rpc.TypeObject
+		if !strings.HasSuffix(p.Path, ".") {
+			p.Path += "."
+		}
 		return
 	}
 	if p.Type == "" {
