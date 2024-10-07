@@ -40,6 +40,14 @@ const (
 	tr181Prefix = "Device."
 )
 
+// NormalizeParameters will normalize all datamodel parameters.
+func (dm *DataModel) NormalizeParameters() {
+	for path, param := range dm.Values {
+		param.Normalize()
+		dm.Values[path] = param
+	}
+}
+
 //
 // Accessors
 //
@@ -368,7 +376,7 @@ func (dm *DataModel) newParameter(path string) Parameter {
 		Path:     path,
 		Object:   false,
 		Writable: true,
-		Type:     rpc.TypeXSDString,
+		Type:     rpc.XSD(rpc.TypeString),
 	}
 }
 

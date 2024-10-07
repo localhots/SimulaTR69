@@ -33,6 +33,9 @@ func main() {
 	if cfg.SerialNumber != "" {
 		dm.SetSerialNumber(cfg.SerialNumber)
 	}
+	if cfg.NormalizeParameters {
+		dm.NormalizeParameters()
+	}
 
 	id := dm.DeviceID()
 	log.Info().

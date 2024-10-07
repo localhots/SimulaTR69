@@ -10,16 +10,16 @@ import (
 func TestEncodeInformRequest(t *testing.T) {
 	env := NewEnvelope("123")
 	vals := []ParameterValueEncoder{
-		{Name: "Device.DeviceInfo.HardwareVersion", Value: ValueEncoder{Type: TypeXSDString, Value: "1.0"}},
-		{Name: "Device.DeviceInfo.ProvisioningCode", Value: ValueEncoder{Type: TypeXSDString, Value: "provisioning.code"}},
-		{Name: "Device.DeviceInfo.SoftwareVersion", Value: ValueEncoder{Type: TypeXSDString, Value: "G3000E-1.2.3"}},
-		{Name: "Device.ManagementServer.AliasBasedAddressing", Value: ValueEncoder{Type: TypeXSDBoolean, Value: "1"}},
-		{Name: "Device.ManagementServer.ConnectionRequestURL", Value: ValueEncoder{Type: TypeXSDString, Value: "http://192.168.1.1:7547/acs"}},
-		{Name: "Device.ManagementServer.ParameterKey", Value: ValueEncoder{Type: TypeXSDString, Value: "n/a"}},
-		{Name: "Device.RootDataModelVersion", Value: ValueEncoder{Type: TypeXSDString, Value: "2.11"}},
-		{Name: "Device.X_ACME_WANDetection.PPPUserName", Value: ValueEncoder{Type: TypeXSDString, Value: "username"}},
-		{Name: "Device.X_ACME_WANDetection.WANIPAddress", Value: ValueEncoder{Type: TypeXSDString, Value: "192.168.1.1"}},
-		{Name: "Device.X_ACME_WANDetection.WANMACAddress", Value: ValueEncoder{Type: TypeXSDString, Value: "de:ca:de:11:22:33"}},
+		{Name: "Device.DeviceInfo.HardwareVersion", Value: ValueEncoder{Type: XSD(TypeString), Value: "1.0"}},
+		{Name: "Device.DeviceInfo.ProvisioningCode", Value: ValueEncoder{Type: XSD(TypeString), Value: "provisioning.code"}},
+		{Name: "Device.DeviceInfo.SoftwareVersion", Value: ValueEncoder{Type: XSD(TypeString), Value: "G3000E-1.2.3"}},
+		{Name: "Device.ManagementServer.AliasBasedAddressing", Value: ValueEncoder{Type: XSD(TypeBoolean), Value: "1"}},
+		{Name: "Device.ManagementServer.ConnectionRequestURL", Value: ValueEncoder{Type: XSD(TypeString), Value: "http://192.168.1.1:7547/acs"}},
+		{Name: "Device.ManagementServer.ParameterKey", Value: ValueEncoder{Type: XSD(TypeString), Value: "n/a"}},
+		{Name: "Device.RootDataModelVersion", Value: ValueEncoder{Type: XSD(TypeString), Value: "2.11"}},
+		{Name: "Device.X_ACME_WANDetection.PPPUserName", Value: ValueEncoder{Type: XSD(TypeString), Value: "username"}},
+		{Name: "Device.X_ACME_WANDetection.WANIPAddress", Value: ValueEncoder{Type: XSD(TypeString), Value: "192.168.1.1"}},
+		{Name: "Device.X_ACME_WANDetection.WANMACAddress", Value: ValueEncoder{Type: XSD(TypeString), Value: "de:ca:de:11:22:33"}},
 	}
 	env.Body.Inform = &InformRequestEncoder{
 		DeviceId: DeviceID{
@@ -67,7 +67,7 @@ func TestEncodeGetRPCMethodsResponse(t *testing.T) {
 	}
 	env.Body.GetRPCMethodsResponse = &GetRPCMethodsResponseEncoder{
 		MethodList: MethodListEncoder{
-			ArrayType: ArrayType(TypeXSDString, len(methods)),
+			ArrayType: ArrayType(XSD(TypeString), len(methods)),
 			Methods:   methods,
 		},
 	}
@@ -97,7 +97,7 @@ func TestEncodeGetParameterValuesResponse(t *testing.T) {
 				{
 					Name: "Device.DeviceInfo.VendorConfigFile.1.Version",
 					Value: ValueEncoder{
-						Type:  TypeXSDString,
+						Type:  XSD(TypeString),
 						Value: "0.0",
 					},
 				},
@@ -150,7 +150,7 @@ func TestEncodeGetParameterAttributesResponse(t *testing.T) {
 					Name:         "Device.DeviceSummary",
 					Notification: 1,
 					AccessList: AccessListEncoder{
-						ArrayType: ArrayType(TypeXSDString, 1),
+						ArrayType: ArrayType(XSD(TypeString), 1),
 						Values:    []string{"Subscriber"},
 					},
 				},

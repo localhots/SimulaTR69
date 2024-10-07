@@ -56,6 +56,10 @@ var Config struct {
 	// to the ACS.
 	ACSVerifyTLS bool `env:"ACS_VERIFY_TLS, default=false"`
 
+	// NormalizeParameters when set to true will attempt to normalize datamodel
+	// parameter types and values in order to bring them closer to the spec.
+	NormalizeParameters bool `env:"NORMALIZE_PARAMETERS, default=true"`
+
 	// RebootDelay defines how long the simulator should wait and drop incoming
 	// connection requests to pretend that it reboots.
 	RebootDelay time.Duration `env:"REBOOT_DELAY, default=5s"`
