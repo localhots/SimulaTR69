@@ -44,10 +44,10 @@ func TestParseTypeDef(t *testing.T) {
 		assert.Equal(t, 50, *td.max)
 	})
 	t.Run("whitespaced", func(t *testing.T) {
-		td, err := parseTypeDef("   whitespaced 	 ")
+		td, err := parseTypeDef("   string 	 ")
 		require.NoError(t, err)
 		require.NotNil(t, td)
-		assert.Equal(t, "whitespaced", td.name)
+		assert.Equal(t, "string", td.name)
 		assert.Nil(t, td.min)
 		assert.Nil(t, td.max)
 	})
