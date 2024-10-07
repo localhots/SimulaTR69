@@ -85,7 +85,7 @@ func (s *Server) handleConnectionRequest(w http.ResponseWriter, r *http.Request)
 }
 
 // nolint:gocyclo
-func (s *Server) handleEnvelope(env *rpc.EnvelopeDecoder) rpc.EnvelopeEncoder {
+func (s *Server) handleEnvelope(env *rpc.EnvelopeDecoder) *rpc.EnvelopeEncoder {
 	envID := env.Header.ID.Value
 	switch {
 	case env.Body.GetRPCMethods != nil:
@@ -122,35 +122,46 @@ func (s *Server) handleEnvelope(env *rpc.EnvelopeDecoder) rpc.EnvelopeEncoder {
 		return s.handleSetVouchers(envID)
 	case env.Body.GetOptions != nil:
 		return s.handleGetOptions(envID)
+	case env.Body.Fault != nil:
+		return s.handleFault(envID, env.Body.Fault)
 	default:
 		log.Warn().Msg("Unknown method")
 		return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 	}
 }
 
-func (s *Server) handleGetQueuedTransfers(envID string) rpc.EnvelopeEncoder {
+func (s *Server) handleGetQueuedTransfers(envID string) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "GetQueuedTransfers").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
-func (s *Server) handleGetAllQueuedTransfers(envID string) rpc.EnvelopeEncoder {
+func (s *Server) handleGetAllQueuedTransfers(envID string) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "GetAllQueuedTransfers").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
-func (s *Server) handleScheduleInform(envID string) rpc.EnvelopeEncoder {
+func (s *Server) handleScheduleInform(envID string) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "ScheduleInform").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
-func (s *Server) handleSetVouchers(envID string) rpc.EnvelopeEncoder {
+func (s *Server) handleSetVouchers(envID string) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "SetVouchers").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
-func (s *Server) handleGetOptions(envID string) rpc.EnvelopeEncoder {
+func (s *Server) handleGetOptions(envID string) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "GetOptions").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
+}
+
+func (s *Server) handleFault(envID string, r *rpc.FaultPayload) *rpc.EnvelopeEncoder {
+	log.Error().
+		Str("env_id", envID).
+		Str("code", r.Detail.Fault.FaultCode.String()).
+		Str("string", r.Detail.Fault.FaultString).
+		Msg("ACS fault")
+	return nil
 }
 
 func (s *Server) pretendOfflineFor(dur time.Duration) {
@@ -163,7 +174,7 @@ func (s *Server) pretendOfflineFor(dur time.Duration) {
 
 var envelopeID uint64
 
-func newEnvelope() rpc.EnvelopeEncoder {
+func newEnvelope() *rpc.EnvelopeEncoder {
 	return rpc.NewEnvelope(nextEnvelopeID())
 }
 

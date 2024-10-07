@@ -45,6 +45,7 @@ type BodyDecoder struct {
 	InformResponse                     *InformResponse
 	TransferCompleteResponse           *EmptyPayload
 	AutonomousTransferCompleteResponse *EmptyPayload
+	Fault                              *FaultPayload
 }
 
 //
@@ -191,6 +192,16 @@ type EmptyPayload struct{}
 
 type InformResponse struct {
 	MaxEnvelopes int
+}
+
+type FaultPayload struct {
+	FaultCode   string             `xml:"faultcode"`
+	FaultString string             `xml:"faultstring"`
+	Detail      FaultDetailPayload `xml:"detail"`
+}
+
+type FaultDetailPayload struct {
+	Fault FaultStruct
 }
 
 //

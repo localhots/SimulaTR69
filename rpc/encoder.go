@@ -214,8 +214,8 @@ func NewFaultResponse(code FaultCode, str string) *FaultEncoder {
 	}
 }
 
-func NewEnvelope(id string) EnvelopeEncoder {
-	return EnvelopeEncoder{
+func NewEnvelope(id string) *EnvelopeEncoder {
+	return &EnvelopeEncoder{
 		XMLSpaceEnv:  NSEnv,
 		XMLSpaceEnc:  NSEnc,
 		XMLSpaceXSD:  NSXSD,
@@ -268,12 +268,12 @@ func (ee EnvelopeEncoder) Method() string {
 	}
 }
 
-func (ee EnvelopeEncoder) WithFault(fault FaultCode) EnvelopeEncoder {
+func (ee *EnvelopeEncoder) WithFault(fault FaultCode) *EnvelopeEncoder {
 	ee.Body.Fault = NewFaultResponse(fault, fault.String())
 	return ee
 }
 
-func (ee EnvelopeEncoder) WithFaultMsg(fault FaultCode, msg string) EnvelopeEncoder {
+func (ee *EnvelopeEncoder) WithFaultMsg(fault FaultCode, msg string) *EnvelopeEncoder {
 	ee.Body.Fault = NewFaultResponse(fault, msg)
 	return ee
 }
