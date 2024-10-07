@@ -237,6 +237,7 @@ func newClient(host, port string) (http.Client, func() error, error) {
 			return conn, nil
 		},
 		TLSClientConfig: &tls.Config{
+			// nolint:gosec
 			InsecureSkipVerify: !Config.ACSVerifyTLS,
 		},
 	}
