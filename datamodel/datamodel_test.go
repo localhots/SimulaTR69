@@ -78,6 +78,7 @@ func TestNormalizeParameters(t *testing.T) {
 	assert.Equal(t, "2023-11-22T04:30:27Z", param.Value)
 
 	param = dm.Values["Device.DeviceInfo.MemoryStatus"]
+	assert.Equal(t, "Device.DeviceInfo.MemoryStatus.", param.Path)
 	assert.Equal(t, "object", param.Type)
 	assert.Equal(t, "", param.Value)
 

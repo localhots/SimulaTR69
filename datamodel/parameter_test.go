@@ -27,6 +27,30 @@ func TestNormalizeBool(t *testing.T) {
 		val := normalizeBool("foo", "true")
 		assert.Equal(t, "true", val)
 	})
+	t.Run("no", func(t *testing.T) {
+		val := normalizeBool("foo", "no")
+		assert.Equal(t, "false", val)
+	})
+	t.Run("off", func(t *testing.T) {
+		val := normalizeBool("foo", "off")
+		assert.Equal(t, "false", val)
+	})
+	t.Run("disabled", func(t *testing.T) {
+		val := normalizeBool("foo", "disabled")
+		assert.Equal(t, "false", val)
+	})
+	t.Run("yes", func(t *testing.T) {
+		val := normalizeBool("foo", "yes")
+		assert.Equal(t, "true", val)
+	})
+	t.Run("on", func(t *testing.T) {
+		val := normalizeBool("foo", "on")
+		assert.Equal(t, "true", val)
+	})
+	t.Run("enabled", func(t *testing.T) {
+		val := normalizeBool("foo", "enabled")
+		assert.Equal(t, "true", val)
+	})
 	t.Run("invalid", func(t *testing.T) {
 		val := normalizeBool("foo", "invalid")
 		assert.Equal(t, "false", val)

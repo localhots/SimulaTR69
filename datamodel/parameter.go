@@ -79,9 +79,13 @@ func normalizeValue(td *typeDef, name, val string) string {
 
 func normalizeBool(name, val string) string {
 	const fallback = "false"
-	if val == "" {
-		return fallback
+	switch strings.ToLower(val) {
+	case "", "no", "off", "disabled":
+		return "false"
+	case "yes", "on", "enabled":
+		return "true"
 	}
+
 	b, err := strconv.ParseBool(val)
 	if err != nil {
 		log.Warn().
