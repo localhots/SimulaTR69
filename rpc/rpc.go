@@ -16,9 +16,6 @@ const (
 	NSXSI  = "http://www.w3.org/2001/XMLSchema-instance"
 	NSCWMP = "urn:dslforum-org:cwmp-1-0"
 
-	TypeXSDString  = "xsd:string"
-	TypeXSDBoolean = "xsd:boolean"
-
 	EventBootstrap                  = "0 BOOTSTRAP"
 	EventBoot                       = "1 BOOT"
 	EventPeriodic                   = "2 PERIODIC"

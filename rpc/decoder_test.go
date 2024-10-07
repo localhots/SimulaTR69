@@ -25,11 +25,11 @@ func TestDecodeSetParameterValuesRequest(t *testing.T) {
 
 	v1 := pl.ParameterValues[0]
 	assert.Equal(t, "Device.ManagementServer.ConnectionRequestUsername", v1.Name)
-	assert.Equal(t, TypeXSDString, v1.Value.Type)
+	assert.Equal(t, XSD(TypeString), v1.Value.Type)
 	assert.Equal(t, "G3000E-9799109101", v1.Value.Value)
 	v2 := pl.ParameterValues[1]
 	assert.Equal(t, "Device.ManagementServer.ConnectionRequestPassword", v2.Name)
-	assert.Equal(t, TypeXSDString, v2.Value.Type)
+	assert.Equal(t, XSD(TypeString), v2.Value.Type)
 	assert.Equal(t, "secret", v2.Value.Value)
 }
 
@@ -40,7 +40,7 @@ func TestDecodeGetParameterValuesRequest(t *testing.T) {
 
 	pn := env.Body.GetParameterValues.ParameterNames
 	require.Len(t, pn.Names, 1)
-	require.Equal(t, ArrayType(TypeXSDString, len(pn.Names)), pn.ArrayType)
+	require.Equal(t, ArrayType(XSD(TypeString), len(pn.Names)), pn.ArrayType)
 	assert.Equal(t, "Device.DeviceSummary.", pn.Names[0])
 }
 
@@ -67,7 +67,7 @@ func TestDecodeSetParameterAttributesRequest(t *testing.T) {
 	assert.Equal(t, true, pa.NotificationChange)
 	assert.Equal(t, AttributeNotificationPassive, pa.Notification)
 	assert.Equal(t, true, pa.AccessListChange)
-	assert.Equal(t, ArrayType(TypeXSDString, 1), pa.AccessList.ArrayType)
+	assert.Equal(t, ArrayType(XSD(TypeString), 1), pa.AccessList.ArrayType)
 	require.Len(t, pa.AccessList.Values, 1)
 	assert.Equal(t, "Subscriber", pa.AccessList.Values[0])
 }
@@ -78,7 +78,7 @@ func TestDecodeGetParameterAttributesRequest(t *testing.T) {
 	require.NotNil(t, env.Body.GetParameterAttributes)
 
 	pn := env.Body.GetParameterAttributes.ParameterNames
-	assert.Equal(t, ArrayType(TypeXSDString, 1), pn.ArrayType)
+	assert.Equal(t, ArrayType(XSD(TypeString), 1), pn.ArrayType)
 	require.Len(t, pn.Names, 1)
 	assert.Equal(t, "Device.DeviceInfo.VendorConfigFile.1.Version", pn.Names[0])
 }
