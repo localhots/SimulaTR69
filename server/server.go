@@ -7,6 +7,7 @@ import (
 	"net/http/cookiejar"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -25,6 +26,7 @@ type Server struct {
 	cookies              http.CookieJar
 	informScheduleUpdate chan struct{}
 	startedAt            time.Time
+	informMux            sync.Mutex
 }
 
 // Start starts the server.

@@ -49,6 +49,10 @@ func (s *Server) resetInformTimer() {
 // Inform initiates an inform message to the ACS.
 // nolint:gocyclo
 func (s *Server) Inform(ctx context.Context) {
+	// Allow only one session at a time
+	s.informMux.Lock()
+	defer s.informMux.Unlock()
+
 	u, err := url.Parse(Config.ACSURL)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to parse ACS URL")
