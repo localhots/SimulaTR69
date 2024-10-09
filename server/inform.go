@@ -55,12 +55,15 @@ func (s *Server) Inform(ctx context.Context) {
 
 	u, err := url.Parse(Config.ACSURL)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to parse ACS URL")
+		log.Error().Err(err).Msg("Failed to parse ACS URL")
+		return
 	}
 
 	client, closeFn, err := newClient(u.Hostname(), tcpPort(u))
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to connect to ACS")
+		log.Error().Err(err).Msg("Failed to connect to ACS")
+		s.dm.IncrRetryAttempts()
+		return
 	}
 	defer func() { _ = closeFn() }()
 
