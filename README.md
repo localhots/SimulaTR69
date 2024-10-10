@@ -1,18 +1,24 @@
 # TR-069 simulator
 
-A CPE simulator for TR-069 protocol. It supports both TR-098 and TR-181
+A CPE simulator for [TR-069](https://en.wikipedia.org/wiki/TR-069) protocol.
+It supports both
+[TR-098](https://cwmp-data-models.broadband-forum.org/tr-098-1-8-0.html)
+and
+[TR-181](https://cwmp-data-models.broadband-forum.org/tr-181-2-11-0.html)
 datamodel formats.
 
 > [!WARNING]
-> This software is a work in progress. Implementation of TR-069 is incomplete
-and it might not behave correctly in all scenarios.
+> **This project is under active development.**
+>
+> All required TR-069 operations are implemented.
+> Current work focuses on optimizations and compatibility.
 
 # Installation
 
 Give it a serial number, point to a datamodel file and the ACS and it should
 work out of the box.
 
-See `device/server/config.go` for available configuration options.
+See `server/config.go` for available configuration options.
 
 ## Docker Compose
 
