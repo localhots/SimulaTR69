@@ -20,6 +20,14 @@ type Parameter struct {
 	ACL          []string
 }
 
+// NormalizeParameters will normalize all datamodel parameters.
+func NormalizeParameters(params map[string]Parameter) {
+	for path, param := range params {
+		param.Normalize()
+		params[path] = param
+	}
+}
+
 // Encode converts a parameter into RPC ParameterValue structure.
 func (p Parameter) Encode() rpc.ParameterValueEncoder {
 	return rpc.ParameterValueEncoder{
@@ -36,9 +44,6 @@ func (p Parameter) Encode() rpc.ParameterValueEncoder {
 func (p *Parameter) Normalize() {
 	if p.Object {
 		p.Type = rpc.TypeObject
-		if !strings.HasSuffix(p.Path, ".") {
-			p.Path += "."
-		}
 		return
 	}
 	if p.Type == "" {

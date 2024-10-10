@@ -17,9 +17,7 @@ import (
 
 // DataModel describes a stateful CPE datamodel.
 type DataModel struct {
-	Values       map[string]Parameter
-	Bootstrapped bool
-
+	values        *State
 	version       version
 	commandKey    string
 	events        []string
@@ -33,38 +31,46 @@ type DataModel struct {
 type version string
 
 const (
-	tr098 version = "TR098"
-	tr181 version = "TR181"
+	unknownVersion version = ""
+	tr098          version = "TR098"
+	tr181          version = "TR181"
 
 	tr098Prefix = "InternetGatewayDevice."
 	tr181Prefix = "Device."
 )
 
-// NormalizeParameters will normalize all datamodel parameters.
-func (dm *DataModel) NormalizeParameters() {
-	for path, param := range dm.Values {
-		param.Normalize()
-		dm.Values[path] = param
-	}
-}
-
 //
 // Accessors
 //
 
+func New(state *State) *DataModel {
+	dm := &DataModel{values: state}
+	dm.init()
+	return dm
+}
+
+func (dm *DataModel) Reset() {
+	dm.values.reset()
+	dm.version = unknownVersion
+	dm.commandKey = ""
+	dm.events = []string{}
+	dm.notifyParams = []string{}
+	dm.retryAttempts = 0
+	dm.downUntil = time.Time{}
+	dm.init()
+}
+
 // GetAll returns one or more parameters prefixed with the given path.
 func (dm *DataModel) GetAll(path string) []Parameter {
-	dm.lock.RLock()
-	defer dm.lock.RUnlock()
-
 	params := []Parameter{}
 	if strings.HasSuffix(path, ".") {
-		for k, p := range dm.Values {
-			if strings.HasPrefix(k, path) {
+		dm.values.forEach(func(p Parameter) (cont bool) {
+			if strings.HasPrefix(p.Path, path) {
 				params = append(params, p)
 			}
-		}
-	} else if p, ok := dm.Values[path]; ok {
+			return true
+		})
+	} else if p, ok := dm.values.get(path); ok {
 		params = append(params, p)
 	}
 
@@ -74,53 +80,41 @@ func (dm *DataModel) GetAll(path string) []Parameter {
 // GetValue returns a parameter value with the given path. If it does not exist
 // a placeholder is returned.
 func (dm *DataModel) GetValue(path string) Parameter {
-	dm.lock.RLock()
-	defer dm.lock.RUnlock()
-
 	path = dm.prefixedPath(path)
-	v, ok := dm.Values[path]
+	v, ok := dm.values.get(path)
 	if !ok {
-		v = dm.newParameter(path)
+		v = newParameter(path)
 	}
 	return v
 }
 
 // SetValue sets the value of a given parameter.
 func (dm *DataModel) SetValue(path, val string) {
-	dm.lock.Lock()
-	defer dm.lock.Unlock()
-
 	path = dm.prefixedPath(path)
-	v, ok := dm.Values[path]
+	param, ok := dm.values.get(path)
 	if !ok {
-		v = dm.newParameter(path)
+		param = newParameter(path)
 	}
-	v.Value = val
-	dm.Values[path] = v
+	param.Value = val
+	dm.values.save(param)
 }
 
 // SetValues saves multiple parameter values.
 func (dm *DataModel) SetValues(params []Parameter) {
-	dm.lock.Lock()
-	defer dm.lock.Unlock()
-
 	for _, p := range params {
-		v, ok := dm.Values[p.Path]
+		v, ok := dm.values.get(p.Path)
 		if !ok {
-			v = dm.newParameter(p.Path)
+			v = newParameter(p.Path)
 		}
 		v.Type = p.Type
 		v.Value = p.Value
-		dm.Values[p.Path] = v
+		dm.values.save(v)
 	}
 }
 
 // CanSetValue returns a non-nil fault code if a value can't be set.
 func (dm *DataModel) CanSetValue(param Parameter) *rpc.FaultCode {
-	dm.lock.RLock()
-	defer dm.lock.RUnlock()
-
-	v, ok := dm.Values[param.Path]
+	v, ok := dm.values.get(param.Path)
 	if ok {
 		if !v.Writable {
 			return rpc.FaultNonWritableParameter.Ptr()
@@ -128,7 +122,7 @@ func (dm *DataModel) CanSetValue(param Parameter) *rpc.FaultCode {
 		return nil
 	}
 
-	v, ok = dm.Values[dm.parent(param.Path)]
+	v, ok = dm.values.get(parent(param.Path))
 	if (ok && !v.Object) || !ok {
 		return rpc.FaultInvalidParameterName.Ptr()
 	}
@@ -137,28 +131,22 @@ func (dm *DataModel) CanSetValue(param Parameter) *rpc.FaultCode {
 
 // SetParameterAttribute changes parameter value attributes.
 func (dm *DataModel) SetParameterAttribute(name string, notif int, notifChange bool, acl []string, aclChange bool) {
-	dm.lock.Lock()
-	defer dm.lock.Unlock()
-
-	if p, ok := dm.Values[name]; ok {
+	if p, ok := dm.values.get(name); ok {
 		if notifChange {
 			p.Notification = rpc.AttributeNotification(notif)
 		}
 		if aclChange {
 			p.ACL = acl
 		}
-		dm.Values[name] = p
+		dm.values.save(p)
 	}
 }
 
 // AddObject create a new object and returns the index if successful.
 func (dm *DataModel) AddObject(name string) (int, error) {
-	dm.lock.Lock()
-	defer dm.lock.Unlock()
-
 	name = strings.TrimSuffix(name, ".")
 
-	p, ok := dm.Values[name]
+	p, ok := dm.values.get(name)
 	if !ok {
 		return 0, errors.New("parent object doesn't exist")
 	}
@@ -171,43 +159,38 @@ func (dm *DataModel) AddObject(name string) (int, error) {
 
 	reg := regexp.MustCompile(`^` + name + `\.(\d+)`)
 	var max int
-	for k := range dm.Values {
-		m := reg.FindStringSubmatch(k)
+	dm.values.forEach(func(p Parameter) (cont bool) {
+		m := reg.FindStringSubmatch(p.Path)
 		if len(m) < 2 {
-			continue
+			return true
 		}
 		i, err := strconv.Atoi(m[1])
 		if err != nil {
-			continue
+			return true
 		}
 		if i > max {
 			max = i
 		}
-	}
+		return true
+	})
 
 	next := max + 1
 	newName := fmt.Sprintf("%s.%d", name, next)
-	dm.Values[newName] = Parameter{
+	dm.values.save(Parameter{
 		Path:     newName,
 		Object:   true,
 		Writable: true,
-	}
+	})
 
 	return next, nil
 }
 
 // DeleteObject deletes the given object.
 func (dm *DataModel) DeleteObject(name string) {
-	dm.lock.Lock()
-	defer dm.lock.Unlock()
-
 	objName := strings.TrimSuffix(name, ".")
-	for k := range dm.Values {
-		// TODO: Improve this check. See if parent is writable
-		if k == objName || strings.HasPrefix(k, name) {
-			delete(dm.Values, k)
-		}
-	}
+	// TODO: Improve this check. See if parent is writable
+	dm.values.delete(objName)
+	dm.values.deletePrefix(name)
 }
 
 // ParameterNames returns all subparameters in the given path. If nextLevel is
@@ -232,16 +215,13 @@ func (dm *DataModel) ParameterNames(path string, nextLevel bool) []Parameter {
 		}
 	}
 
-	dm.lock.RLock()
-	defer dm.lock.RUnlock()
-
 	params := []Parameter{}
-	for k, p := range dm.Values {
-		if reg.MatchString(k) {
+	dm.values.forEach(func(p Parameter) (cont bool) {
+		if reg.MatchString(p.Path) {
 			params = append(params, p)
 		}
-	}
-
+		return true
+	})
 	return params
 }
 
@@ -281,12 +261,12 @@ func (dm *DataModel) ClearEvents() {
 // IsBootstrapped returns true if CPE is had a successful bootstrap message
 // exchange.
 func (dm *DataModel) IsBootstrapped() bool {
-	return dm.Bootstrapped
+	return dm.values.Bootstrapped
 }
 
 // SetBootstrapped assigns the bootstrap flag to the given value.
 func (dm *DataModel) SetBootstrapped(b bool) {
-	dm.Bootstrapped = b
+	dm.values.Bootstrapped = b
 }
 
 //
@@ -347,19 +327,24 @@ func (dm *DataModel) SetDownUntil(du time.Time) {
 // NotifyParams returns a list of parameters that should be included in the next
 // inform message.
 func (dm *DataModel) NotifyParams() []string {
-	params := []string{}
-	for _, p := range dm.Values {
-		if p.Notification == rpc.AttributeNotificationPassive {
+	params := make([]string, 0, len(dm.notifyParams))
+	copy(params, dm.notifyParams)
+
+	dm.values.forEach(func(p Parameter) (cont bool) {
+		if p.Notification == rpc.AttributeNotificationPassive && !slices.Contains(params, p.Path) {
 			params = append(params, p.Path)
 		}
-	}
-	params = append(params, dm.notifyParams...)
+		return true
+	})
+
 	return params
 }
 
 // NotifyParam subscribes the ACS for the given parameter value.
 func (dm *DataModel) NotifyParam(path string) {
-	dm.notifyParams = append(dm.notifyParams, path)
+	if !slices.Contains(dm.notifyParams, path) {
+		dm.notifyParams = append(dm.notifyParams, path)
+	}
 }
 
 // ClearNotifyParams clears all previous parameter notifications.
@@ -371,26 +356,27 @@ func (dm *DataModel) ClearNotifyParams() {
 // Helpers
 //
 
-func (dm *DataModel) newParameter(path string) Parameter {
-	return Parameter{
-		Path:     path,
-		Object:   false,
-		Writable: true,
-		Type:     rpc.XSD(rpc.TypeString),
+func (dm *DataModel) init() {
+	dm.detectVersion()
+	if !dm.IsBootstrapped() {
+		dm.AddEvent(rpc.EventBootstrap)
+	} else {
+		dm.AddEvent(rpc.EventBoot)
 	}
 }
 
 func (dm *DataModel) detectVersion() {
-	for k := range dm.Values {
-		if strings.HasPrefix(k, tr098Prefix) {
+	dm.values.forEach(func(p Parameter) (cont bool) {
+		if strings.HasPrefix(p.Path, tr098Prefix) {
 			dm.version = tr098
-			return
+			return false
 		}
-		if strings.HasPrefix(k, tr181Prefix) {
+		if strings.HasPrefix(p.Path, tr181Prefix) {
 			dm.version = tr181
-			return
+			return false
 		}
-	}
+		return true
+	})
 }
 
 func (dm *DataModel) prefixedPath(path string) string {
@@ -411,11 +397,8 @@ func (dm *DataModel) prefixedPath(path string) string {
 }
 
 func (dm *DataModel) firstValue(paths ...string) string {
-	dm.lock.RLock()
-	defer dm.lock.RUnlock()
-
 	for _, path := range paths {
-		if p, ok := dm.Values[path]; ok {
+		if p, ok := dm.values.get(path); ok {
 			return p.Value
 		}
 	}
@@ -423,7 +406,16 @@ func (dm *DataModel) firstValue(paths ...string) string {
 	return ""
 }
 
-func (dm *DataModel) parent(path string) string {
+func newParameter(path string) Parameter {
+	return Parameter{
+		Path:     path,
+		Object:   false,
+		Writable: true,
+		Type:     rpc.XSD(rpc.TypeString),
+	}
+}
+
+func parent(path string) string {
 	tokens := strings.Split(path, ".")
 	return strings.Join(tokens[:len(tokens)-1], ".")
 }

@@ -26,15 +26,24 @@ func main() {
 	}
 	cfg := server.Config
 
-	dm, err := datamodel.Load(cfg.DataModelPath, cfg.StateFilePath)
+	log.Info().Str("file", cfg.DataModelPath).Msg("Loading datamodel")
+	defaults, err := datamodel.LoadDataModel(cfg.DataModelPath)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to load datamodel")
 	}
+	if cfg.NormalizeParameters {
+		datamodel.NormalizeParameters(defaults)
+	}
+
+	log.Info().Str("file", cfg.StateFilePath).Msg("Loading state")
+	state, err := datamodel.LoadState(cfg.StateFilePath)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to load state")
+	}
+	dm := datamodel.New(state.WithDefaults(defaults))
+
 	if cfg.SerialNumber != "" {
 		dm.SetSerialNumber(cfg.SerialNumber)
-	}
-	if cfg.NormalizeParameters {
-		dm.NormalizeParameters()
 	}
 
 	id := dm.DeviceID()
