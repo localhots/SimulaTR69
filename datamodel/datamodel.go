@@ -327,7 +327,7 @@ func (dm *DataModel) SetDownUntil(du time.Time) {
 // NotifyParams returns a list of parameters that should be included in the next
 // inform message.
 func (dm *DataModel) NotifyParams() []string {
-	params := make([]string, len(dm.notifyParams))
+	params := make([]string, 0, len(dm.notifyParams))
 	copy(params, dm.notifyParams)
 
 	dm.values.forEach(func(p Parameter) (cont bool) {

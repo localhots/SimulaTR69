@@ -65,48 +65,48 @@ func TestNormalizeParameters(t *testing.T) {
 	}
 	NormalizeParameters(params)
 
-	param, _ := params["Device.DeviceInfo.DeviceCategory"]
+	param := params["Device.DeviceInfo.DeviceCategory"]
 	assert.Equal(t, "xsd:string", param.Type)
 	assert.Equal(t, "", param.Value)
 
-	param, _ = params["Device.DeviceInfo.DeviceImageNumberOfEntries"]
+	param = params["Device.DeviceInfo.DeviceImageNumberOfEntries"]
 	assert.Equal(t, "xsd:unsignedInt", param.Type)
 	assert.Equal(t, "0", param.Value)
 
-	param, _ = params["Device.DeviceInfo.FirstUseDate"]
+	param = params["Device.DeviceInfo.FirstUseDate"]
 	assert.Equal(t, "xsd:dateTime", param.Type)
 	assert.Equal(t, "2023-11-22T04:30:27Z", param.Value)
 
-	param, _ = params["Device.DeviceInfo.MemoryStatus"]
+	param = params["Device.DeviceInfo.MemoryStatus"]
 	assert.Equal(t, "Device.DeviceInfo.MemoryStatus", param.Path)
 	assert.Equal(t, "object", param.Type)
 	assert.Equal(t, "", param.Value)
 
-	param, _ = params["Device.DeviceInfo.MemoryStatus.Free"]
+	param = params["Device.DeviceInfo.MemoryStatus.Free"]
 	assert.Equal(t, "xsd:unsignedInt", param.Type)
 	assert.Equal(t, "163636", param.Value)
 
-	param, _ = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.Enable"]
+	param = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.Enable"]
 	assert.Equal(t, "xsd:boolean", param.Type)
 	assert.Equal(t, "true", param.Value)
 
-	param, _ = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.LowAlarmValue"]
+	param = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.LowAlarmValue"]
 	assert.Equal(t, "xsd:int", param.Type)
 	assert.Equal(t, "-274", param.Value)
 
-	param, _ = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.MaxValue"]
+	param = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.MaxValue"]
 	assert.Equal(t, "xsd:int", param.Type)
 	assert.Equal(t, "-274", param.Value)
 
-	param, _ = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.PollingInterval"]
+	param = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.PollingInterval"]
 	assert.Equal(t, "xsd:unsignedInt", param.Type)
 	assert.Equal(t, "0", param.Value)
 
-	param, _ = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.Reset"]
+	param = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.Reset"]
 	assert.Equal(t, "xsd:boolean", param.Type)
 	assert.Equal(t, "false", param.Value)
 
-	param, _ = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.Status"]
+	param = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.Status"]
 	assert.Equal(t, "xsd:string", param.Type)
 	assert.Equal(t, "Enabled", param.Value)
 }
