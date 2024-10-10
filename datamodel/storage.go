@@ -17,21 +17,22 @@ import (
 // Load looks or given datamodel and state paths and loads them.
 func Load(dmPath, statePath string) (*DataModel, error) {
 	log.Info().Str("file", dmPath).Msg("Loading datamodel")
-	var dm *DataModel
-	var err error
-	if statePath != "" {
-		dm, err = loadState(statePath)
-		if err != nil {
-			return nil, err
-		}
-	}
-	if dm == nil {
-		dm, err = loadDataModel(dmPath)
-		if err != nil {
-			return nil, err
-		}
+	original, err := loadDataModel(dmPath)
+	if err != nil {
+		return nil, err
 	}
 
+	s, err := loadState(statePath)
+	if err != nil {
+		return nil, err
+	}
+	if s == nil {
+		s = newState(original)
+	} else {
+		s.original = original
+	}
+
+	dm := &DataModel{values: s}
 	dm.detectVersion()
 	if !dm.IsBootstrapped() {
 		dm.AddEvent(rpc.EventBootstrap)
@@ -48,7 +49,7 @@ func (dm *DataModel) SaveState(stateFile string) error {
 		return nil
 	}
 
-	b, err := json.MarshalIndent(dm, "", "  ")
+	b, err := json.MarshalIndent(dm.values, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshal datamodel: %w", err)
 	}
@@ -59,7 +60,7 @@ func (dm *DataModel) SaveState(stateFile string) error {
 	return nil
 }
 
-func loadState(filePath string) (*DataModel, error) {
+func loadState(filePath string) (*state, error) {
 	if filePath == "" {
 		return nil, nil
 	}
@@ -72,15 +73,15 @@ func loadState(filePath string) (*DataModel, error) {
 		return nil, fmt.Errorf("read state file: %w", err)
 	}
 
-	var dm DataModel
-	if err := json.Unmarshal(b, &dm); err != nil {
+	var s state
+	if err := json.Unmarshal(b, &s); err != nil {
 		return nil, fmt.Errorf("parse state file: %w", err)
 	}
 
-	return &dm, nil
+	return &s, nil
 }
 
-func loadDataModel(filePath string) (*DataModel, error) {
+func loadDataModel(filePath string) (map[string]Parameter, error) {
 	fd, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("read datamodel file: %w", err)
@@ -88,7 +89,7 @@ func loadDataModel(filePath string) (*DataModel, error) {
 	defer fd.Close()
 	r := csv.NewReader(fd)
 
-	dm := DataModel{Values: make(map[string]Parameter)}
+	values := make(map[string]Parameter)
 	var headerRead bool
 	for {
 		f, err := r.Read()
@@ -117,18 +118,18 @@ func loadDataModel(filePath string) (*DataModel, error) {
 			Value:    f[3],
 		}
 
-		// Add parent object automatically if not defined explicitly
-		parent := dm.parent(p.Path)
-		if _, ok := dm.Values[parent]; !ok {
-			dm.Values[parent] = Parameter{
-				Path:     parent,
+		// Add parentPath object automatically if not defined explicitly
+		parentPath := parent(p.Path)
+		if _, ok := values[parentPath]; !ok {
+			values[parentPath] = Parameter{
+				Path:     parentPath,
 				Object:   true,
 				Writable: true,
 			}
 		}
 
-		dm.Values[p.Path] = p
+		values[p.Path] = p
 	}
 
-	return &dm, nil
+	return values, nil
 }
