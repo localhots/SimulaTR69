@@ -17,7 +17,7 @@ import (
 
 // DataModel describes a stateful CPE datamodel.
 type DataModel struct {
-	values        *state
+	values        *State
 	version       version
 	commandKey    string
 	events        []string
@@ -31,24 +31,34 @@ type DataModel struct {
 type version string
 
 const (
-	tr098 version = "TR098"
-	tr181 version = "TR181"
+	unknownVersion version = ""
+	tr098          version = "TR098"
+	tr181          version = "TR181"
 
 	tr098Prefix = "InternetGatewayDevice."
 	tr181Prefix = "Device."
 )
 
-// NormalizeParameters will normalize all datamodel parameters.
-func (dm *DataModel) NormalizeParameters() {
-	for path, param := range dm.values.original {
-		param.Normalize()
-		dm.values.original[path] = param
-	}
-}
-
 //
 // Accessors
 //
+
+func New(state *State) *DataModel {
+	dm := &DataModel{values: state}
+	dm.init()
+	return dm
+}
+
+func (dm *DataModel) Reset() {
+	dm.values.reset()
+	dm.version = unknownVersion
+	dm.commandKey = ""
+	dm.events = []string{}
+	dm.notifyParams = []string{}
+	dm.retryAttempts = 0
+	dm.downUntil = time.Time{}
+	dm.init()
+}
 
 // GetAll returns one or more parameters prefixed with the given path.
 func (dm *DataModel) GetAll(path string) []Parameter {
@@ -345,6 +355,15 @@ func (dm *DataModel) ClearNotifyParams() {
 //
 // Helpers
 //
+
+func (dm *DataModel) init() {
+	dm.detectVersion()
+	if !dm.IsBootstrapped() {
+		dm.AddEvent(rpc.EventBootstrap)
+	} else {
+		dm.AddEvent(rpc.EventBoot)
+	}
+}
 
 func (dm *DataModel) detectVersion() {
 	dm.values.forEach(func(p Parameter) (cont bool) {
