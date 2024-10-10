@@ -48,6 +48,16 @@ volumes:
 All required methods are supported and should behave realistically, except
 Upload currently don't do anything. There are quirks though.
 
+## Parameter Normalization
+
+`NORMALIZE_PARAMETERS` when set to `true` will make the simulator attempt to
+normalize datamodel parameters. Normalization will bring parameter types to
+common `xsd:` prefixed format with values checked against their types: negative
+unsigned integer numbers will be corrected to zeroes, boolean "yes" will be
+normalized to "true".
+
+Default is `false`.
+
 ## Connection Requests
 
 All connection requests are accepted and trusted. This is done for convenience.
