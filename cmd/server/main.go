@@ -13,7 +13,6 @@ import (
 
 	"github.com/localhots/SimulaTR69/datamodel"
 	"github.com/localhots/SimulaTR69/server"
-	"github.com/localhots/SimulaTR69/server/metrics"
 )
 
 func main() {
@@ -55,7 +54,7 @@ func main() {
 		Str("serial_number", id.SerialNumber).
 		Msg("Simulating device")
 
-	srv := server.New(dm, metrics.NewNoop())
+	srv := server.New(dm)
 	go func() {
 		// FIXME: something's off with error checking here
 		// nolint:errorlint

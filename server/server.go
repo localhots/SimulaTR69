@@ -54,7 +54,7 @@ func (s *Server) URL() string {
 }
 
 // New creates a new server instance.
-func New(dm *datamodel.DataModel, m *metrics.Metrics) *Server {
+func New(dm *datamodel.DataModel) *Server {
 	mux := http.NewServeMux()
 	jar, _ := cookiejar.New(nil)
 	httpServer := &http.Server{
@@ -68,10 +68,16 @@ func New(dm *datamodel.DataModel, m *metrics.Metrics) *Server {
 		dm:                   dm,
 		cookies:              jar,
 		informScheduleUpdate: make(chan struct{}, 1),
-		metrics:              m,
+		metrics:              metrics.NewNoop(),
 	}
 	mux.HandleFunc("/cwmp", s.handleConnectionRequest)
 	s.dm.SetConnectionRequestURL(s.URL())
+	return s
+}
+
+func NewWithMetrics(dm *datamodel.DataModel, m *metrics.Metrics) *Server {
+	s := New(dm)
+	s.metrics = m
 	return s
 }
 
