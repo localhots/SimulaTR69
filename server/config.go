@@ -67,6 +67,13 @@ var Config struct {
 	// UpgradeDelay defines how long the simulator should wait and drop incoming
 	// connection requests to pretend that software upgrades take time.
 	UpgradeDelay time.Duration `env:"UPGRADE_DELAY, default=15s"`
+
+	// ConnectionTimeout defines how long it can take to establish a TCP
+	// connection with the ACS.
+	ConnectionTimeout time.Duration `env:"CONNECTION_TIMEOUT, default=5s"`
+
+	// RequestTimeout defines how long request processing could take.
+	RequestTimeout time.Duration `env:"REQUEST_TIMEOUT, default=5s"`
 }
 
 // ErrNoCreds is returned when ACS authentication is configured for digest

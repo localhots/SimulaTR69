@@ -16,6 +16,7 @@ import (
 
 	"github.com/localhots/SimulaTR69/datamodel"
 	"github.com/localhots/SimulaTR69/rpc"
+	"github.com/localhots/SimulaTR69/server/metrics"
 )
 
 // Server is a server that can connect to an ACS and receive connection
@@ -27,6 +28,7 @@ type Server struct {
 	informScheduleUpdate chan struct{}
 	startedAt            time.Time
 	informMux            sync.Mutex
+	metrics              *metrics.Metrics
 }
 
 // Start starts the server.
@@ -52,7 +54,7 @@ func (s *Server) URL() string {
 }
 
 // New creates a new server instance.
-func New(dm *datamodel.DataModel) *Server {
+func New(dm *datamodel.DataModel, m *metrics.Metrics) *Server {
 	mux := http.NewServeMux()
 	jar, _ := cookiejar.New(nil)
 	httpServer := &http.Server{
@@ -66,8 +68,9 @@ func New(dm *datamodel.DataModel) *Server {
 		dm:                   dm,
 		cookies:              jar,
 		informScheduleUpdate: make(chan struct{}, 1),
+		metrics:              m,
 	}
-	mux.HandleFunc("/", s.handleConnectionRequest)
+	mux.HandleFunc("/cwmp", s.handleConnectionRequest)
 	s.dm.SetConnectionRequestURL(s.URL())
 	return s
 }

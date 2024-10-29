@@ -9,9 +9,11 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/icholy/digest"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 
 	"github.com/localhots/SimulaTR69/rpc"
@@ -50,7 +52,9 @@ func (s *Server) resetInformTimer() {
 // nolint:gocyclo
 func (s *Server) Inform(ctx context.Context) {
 	// Allow only one session at a time
-	s.informMux.Lock()
+	if ok := s.informMux.TryLock(); !ok {
+		return
+	}
 	defer s.informMux.Unlock()
 
 	u, err := url.Parse(Config.ACSURL)
@@ -59,9 +63,18 @@ func (s *Server) Inform(ctx context.Context) {
 		return
 	}
 
+	connectionStartTime := time.Now()
+	defer func() {
+		s.metrics.ConcurrentInforms.Dec()
+		s.metrics.InformDuration.Observe(float64(time.Since(connectionStartTime).Milliseconds()))
+	}()
+	s.metrics.ConcurrentInforms.Inc()
+	s.metrics.ConnectionLatency.Observe(float64(time.Since(connectionStartTime).Milliseconds()))
+
 	client, closeFn, err := newClient(u.Hostname(), tcpPort(u))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to connect to ACS")
+		s.metrics.RequestFailures.Inc()
 		s.dm.IncrRetryAttempts()
 		return
 	}
@@ -77,6 +90,7 @@ func (s *Server) Inform(ctx context.Context) {
 	b, err := io.ReadAll(resp.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to read response")
+		s.metrics.RequestFailures.Inc()
 		s.dm.IncrRetryAttempts()
 		return
 	}
@@ -105,6 +119,7 @@ func (s *Server) Inform(ctx context.Context) {
 		b, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to read request")
+			s.metrics.RequestFailures.Inc()
 			return
 		}
 		_ = resp.Body.Close()
@@ -199,9 +214,13 @@ func (s *Server) request(ctx context.Context, client *http.Client, env *rpc.Enve
 
 	resp, err := client.Do(req)
 	if err != nil {
+		s.metrics.RequestFailures.Inc()
 		return nil, fmt.Errorf("execute request: %w", err)
 	}
 	s.cookies.SetCookies(req.URL, resp.Cookies())
+	s.metrics.ResponseStatus.With(prometheus.Labels{
+		"status": strconv.Itoa(resp.StatusCode),
+	}).Inc()
 
 	return resp, nil
 }
@@ -231,15 +250,15 @@ func (s *Server) debugEnvelope(env *rpc.EnvelopeEncoder) {
 }
 
 func newClient(host, port string) (http.Client, func() error, error) {
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%s", host, port))
+	dialer := net.Dialer{
+		Timeout: Config.ConnectionTimeout,
+	}
+	conn, err := dialer.Dial("tcp", fmt.Sprintf("%s:%s", host, port))
 	if err != nil {
 		return http.Client{}, nil, fmt.Errorf("create a TCP connection to ACS: %w", err)
 	}
 
 	tr := &http.Transport{
-		DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-			return conn, nil
-		},
 		Dial: func(_, _ string) (net.Conn, error) {
 			return conn, nil
 		},
@@ -248,8 +267,10 @@ func newClient(host, port string) (http.Client, func() error, error) {
 			InsecureSkipVerify: !Config.ACSVerifyTLS,
 		},
 	}
-	client := http.Client{Transport: tr}
-
+	client := http.Client{
+		Transport: tr,
+		Timeout:   Config.RequestTimeout,
+	}
 	if Config.ACSAuth == AuthDigest {
 		client.Transport = &digest.Transport{
 			Transport: tr,
