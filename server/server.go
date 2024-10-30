@@ -72,9 +72,7 @@ func New(dm *datamodel.DataModel) *Server {
 	}
 	mux.HandleFunc("/cwmp", s.handleConnectionRequest)
 	s.dm.SetConnectionRequestURL(s.URL())
-	if Config.InformInterval > 0 {
-		s.dm.SetPeriodicInformInterval(int64(Config.InformInterval.Seconds()))
-	}
+	s.SetPeriodicInformInterval(Config.InformInterval)
 	return s
 }
 
@@ -82,6 +80,12 @@ func NewWithMetrics(dm *datamodel.DataModel, m *metrics.Metrics) *Server {
 	s := New(dm)
 	s.metrics = m
 	return s
+}
+
+func (s *Server) SetPeriodicInformInterval(dur time.Duration) {
+	if dur > 0 {
+		s.dm.SetPeriodicInformInterval(int64(dur.Seconds()))
+	}
 }
 
 func (s *Server) handleConnectionRequest(w http.ResponseWriter, r *http.Request) {
