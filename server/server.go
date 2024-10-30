@@ -85,7 +85,6 @@ func NewWithMetrics(dm *datamodel.DataModel, m *metrics.Metrics) *Server {
 func (s *Server) SetPeriodicInformInterval(dur time.Duration) {
 	if dur > 0 {
 		s.dm.SetPeriodicInformInterval(int64(dur.Seconds()))
-		s.resetInformTimer()
 	}
 }
 
