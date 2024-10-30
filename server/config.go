@@ -37,7 +37,7 @@ var Config struct {
 	// StateFilePath points to the state file. If the file doesn't exist it will
 	// be created and will maintain all changes made to the datamodel. Missing
 	// state file will trigger a BOOTSTRAP inform event.
-	StateFilePath string `env:"STATE_PATH, default=state.json"`
+	StateFilePath string `env:"STATE_PATH"`
 
 	// ACSURL is the URL for the ACS.
 	ACSURL string `env:"ACS_URL, required"`
