@@ -72,6 +72,9 @@ func New(dm *datamodel.DataModel) *Server {
 	}
 	mux.HandleFunc("/cwmp", s.handleConnectionRequest)
 	s.dm.SetConnectionRequestURL(s.URL())
+	if Config.InformInterval > 0 {
+		s.dm.SetPeriodicInformInterval(int64(Config.InformInterval.Seconds()))
+	}
 	return s
 }
 

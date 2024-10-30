@@ -56,6 +56,9 @@ var Config struct {
 	// to the ACS.
 	ACSVerifyTLS bool `env:"ACS_VERIFY_TLS, default=false"`
 
+	// InformInterval allows to override inform interval in the datamodel.
+	InformInterval time.Duration `env:"INFORM_INTERVAL"`
+
 	// NormalizeParameters when set to true will attempt to normalize datamodel
 	// parameter types and values in order to bring them closer to the spec.
 	NormalizeParameters bool `env:"NORMALIZE_PARAMETERS, default=false"`
