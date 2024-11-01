@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"strconv"
@@ -23,6 +24,7 @@ import (
 // requests.
 type Server struct {
 	httpServer           *http.Server
+	realPort             int
 	dm                   *datamodel.DataModel
 	cookies              http.CookieJar
 	informScheduleUpdate chan struct{}
@@ -33,11 +35,18 @@ type Server struct {
 
 // Start starts the server.
 func (s *Server) Start(ctx context.Context) error {
-	log.Info().Str("server_url", s.URL()).Msg("Starting server")
-	log.Info().Str("acs_url", Config.ACSURL).Msg("Connecting to ACS")
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", Config.Host, Config.Port))
+	if err != nil {
+		return fmt.Errorf("create TCP listener: %w", err)
+	}
+	s.realPort = listener.Addr().(*net.TCPAddr).Port
 	s.startedAt = time.Now()
+	s.dm.SetConnectionRequestURL(s.URL())
+	s.SetPeriodicInformInterval(Config.InformInterval)
 	go s.periodicInform(ctx)
-	return s.httpServer.ListenAndServe()
+
+	log.Info().Str("server_url", s.URL()).Msg("Starting server")
+	return s.httpServer.Serve(listener)
 }
 
 // Stop stops the server.
@@ -50,29 +59,26 @@ func (s *Server) Stop(ctx context.Context) error {
 
 // URL returns the URL of the server.
 func (s *Server) URL() string {
-	return fmt.Sprintf("http://%s:%d/cwmp", Config.Host, Config.Port)
+	return fmt.Sprintf("http://%s:%d/cwmp", Config.Host, s.realPort)
 }
 
 // New creates a new server instance.
 func New(dm *datamodel.DataModel) *Server {
 	mux := http.NewServeMux()
 	jar, _ := cookiejar.New(nil)
-	httpServer := &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", Config.Host, Config.Port),
-		Handler:      mux,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
-	}
 	s := &Server{
-		httpServer:           httpServer,
+		httpServer: &http.Server{
+			Addr:         fmt.Sprintf("%s:%d", Config.Host, Config.Port),
+			Handler:      mux,
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 5 * time.Second,
+		},
 		dm:                   dm,
 		cookies:              jar,
 		informScheduleUpdate: make(chan struct{}, 1),
 		metrics:              metrics.NewNoop(),
 	}
 	mux.HandleFunc("/cwmp", s.handleConnectionRequest)
-	s.dm.SetConnectionRequestURL(s.URL())
-	s.SetPeriodicInformInterval(Config.InformInterval)
 	return s
 }
 
