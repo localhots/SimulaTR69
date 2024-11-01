@@ -35,8 +35,6 @@ type Server struct {
 
 // Start starts the server.
 func (s *Server) Start(ctx context.Context) error {
-	log.Info().Str("server_url", s.URL()).Msg("Starting server")
-
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", Config.Host, Config.Port))
 	if err != nil {
 		return fmt.Errorf("create TCP listener: %w", err)
@@ -47,6 +45,7 @@ func (s *Server) Start(ctx context.Context) error {
 	s.SetPeriodicInformInterval(Config.InformInterval)
 	go s.periodicInform(ctx)
 
+	log.Info().Str("server_url", s.URL()).Msg("Starting server")
 	return s.httpServer.Serve(listener)
 }
 
