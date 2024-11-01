@@ -71,6 +71,7 @@ func (s *Server) Inform(ctx context.Context) {
 	s.metrics.ConcurrentInforms.Inc()
 	s.metrics.ConnectionLatency.Observe(float64(time.Since(connectionStartTime).Milliseconds()))
 
+	log.Info().Str("acs_url", Config.ACSURL).Msg("Connecting to ACS")
 	client, closeFn, err := newClient(u.Hostname(), tcpPort(u))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to connect to ACS")
