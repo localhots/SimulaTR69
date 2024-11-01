@@ -25,7 +25,7 @@ import (
 type Server struct {
 	httpServer           *http.Server
 	listener             net.Listener
-	addr                 String
+	addr                 string
 	dm                   *datamodel.DataModel
 	cookies              http.CookieJar
 	informScheduleUpdate chan struct{}
