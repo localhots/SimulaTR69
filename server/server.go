@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"strconv"
@@ -23,6 +24,8 @@ import (
 // requests.
 type Server struct {
 	httpServer           *http.Server
+	listener             net.Listener
+	addr                 String
 	dm                   *datamodel.DataModel
 	cookies              http.CookieJar
 	informScheduleUpdate chan struct{}
@@ -37,7 +40,7 @@ func (s *Server) Start(ctx context.Context) error {
 	log.Info().Str("acs_url", Config.ACSURL).Msg("Connecting to ACS")
 	s.startedAt = time.Now()
 	go s.periodicInform(ctx)
-	return s.httpServer.ListenAndServe()
+	return s.httpServer.Serve(s.listener)
 }
 
 // Stop stops the server.
@@ -50,21 +53,29 @@ func (s *Server) Stop(ctx context.Context) error {
 
 // URL returns the URL of the server.
 func (s *Server) URL() string {
-	return fmt.Sprintf("http://%s:%d/cwmp", Config.Host, Config.Port)
+	if s.addr != "" {
+		return s.addr
+	}
+	return s.httpServer.Addr
 }
 
 // New creates a new server instance.
 func New(dm *datamodel.DataModel) *Server {
 	mux := http.NewServeMux()
 	jar, _ := cookiejar.New(nil)
-	httpServer := &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", Config.Host, Config.Port),
-		Handler:      mux,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 5 * time.Second,
+	l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", Config.Host, Config.Port))
+	if err != nil {
+		log.Err(err).Str("server_url", l.Addr().String()).Msg("Create listener")
 	}
 	s := &Server{
-		httpServer:           httpServer,
+		httpServer: &http.Server{
+			Addr:         fmt.Sprintf("%s:%d", Config.Host, Config.Port),
+			Handler:      mux,
+			ReadTimeout:  5 * time.Second,
+			WriteTimeout: 5 * time.Second,
+		},
+		listener:             l,
+		addr:                 l.Addr().String(),
 		dm:                   dm,
 		cookies:              jar,
 		informScheduleUpdate: make(chan struct{}, 1),
