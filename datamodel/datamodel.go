@@ -78,9 +78,6 @@ func (dm *DataModel) GetAll(path string) []Parameter {
 		})
 	} else if p, ok := dm.values.get(path); ok {
 		params = append(params, p)
-	} else {
-		log.Debug().Str("PN", path).Msg("not found")
-		return nil
 	}
 	return params
 }
