@@ -10,6 +10,10 @@ func (s *Server) handleGetParameterNames(envID string, r *rpc.GetParameterNamesR
 	log.Info().Str("method", "GetParameterNames").Msg("Received message")
 	r.Debug()
 	names := s.dm.ParameterNames(r.ParameterPath, r.NextLevel)
+	if names == nil {
+		resp := rpc.NewEnvelope(envID)
+		return resp.WithFault(rpc.FaultInvalidParameterName)
+	}
 	params := make([]rpc.ParameterInfoStruct, 0, len(names))
 	for _, p := range names {
 		path := p.Path

@@ -44,6 +44,17 @@ func TestDecodeGetParameterValuesRequest(t *testing.T) {
 	assert.Equal(t, "Device.DeviceSummary.", pn.Names[0])
 }
 
+func TestDecodeGetInvalidParameterValuesRequest(t *testing.T) {
+	env, err := Decode(getInvalidParameterValuesRequestTestData)
+	require.NoError(t, err)
+	require.NotNil(t, env.Body.GetParameterValues)
+
+	pn := env.Body.GetParameterValues.ParameterNames
+	require.Len(t, pn.Names, 1)
+	require.Equal(t, ArrayType(XSD(TypeString), len(pn.Names)), pn.ArrayType)
+	assert.Equal(t, "Device.DeviceSummary.NonExisting", pn.Names[0])
+}
+
 func TestDecodeGetParameterNamesRequest(t *testing.T) {
 	env, err := Decode(getParameterNamesRequestTestData)
 	require.NoError(t, err)

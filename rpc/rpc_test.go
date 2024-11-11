@@ -16,6 +16,9 @@ var (
 	//go:embed test_data/get_parameter_values_request.xml
 	getParameterValuesRequestTestData []byte
 
+	//go:embed test_data/get_invalid_parameter_values_request.xml
+	getInvalidParameterValuesRequestTestData []byte
+
 	//go:embed test_data/get_parameter_names_request.xml
 	getParameterNamesRequestTestData []byte
 
@@ -67,6 +70,9 @@ var (
 
 	//go:embed test_data/get_parameter_values_response.xml
 	getParameterValuesResponseTestData []byte
+
+	//go:embed test_data/get_parameter_values_fault_response.xml
+	getParameterValuesFaultResponseTestData []byte
 
 	//go:embed test_data/get_parameter_names_response.xml
 	getParameterNamesResponseTestData []byte

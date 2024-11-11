@@ -12,6 +12,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/rs/zerolog/log"
+
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
@@ -62,18 +64,24 @@ func (dm *DataModel) Reset() {
 
 // GetAll returns one or more parameters prefixed with the given path.
 func (dm *DataModel) GetAll(path string) []Parameter {
-	params := []Parameter{}
+	var params []Parameter
 	if strings.HasSuffix(path, ".") {
 		dm.values.forEach(func(p Parameter) (cont bool) {
 			if strings.HasPrefix(p.Path, path) {
+				if params == nil {
+					params = make([]Parameter, 0, 1)
+				}
 				params = append(params, p)
+				return true
 			}
-			return true
+			return false
 		})
 	} else if p, ok := dm.values.get(path); ok {
 		params = append(params, p)
+	} else {
+		log.Debug().Str("PN", path).Msg("not found")
+		return nil
 	}
-
 	return params
 }
 
@@ -219,6 +227,10 @@ func (dm *DataModel) ParameterNames(path string, nextLevel bool) []Parameter {
 	dm.values.forEach(func(p Parameter) (cont bool) {
 		if reg.MatchString(p.Path) {
 			params = append(params, p)
+		} else {
+			log.Debug()
+			params = nil
+			return false
 		}
 		return true
 	})
