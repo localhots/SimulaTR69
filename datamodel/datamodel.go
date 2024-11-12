@@ -62,13 +62,10 @@ func (dm *DataModel) Reset() {
 
 // GetAll returns one or more parameters prefixed with the given path.
 func (dm *DataModel) GetAll(path string) []Parameter {
-	var params []Parameter
+	params := []Parameter{}
 	if strings.HasSuffix(path, ".") {
 		dm.values.forEach(func(p Parameter) (cont bool) {
 			if strings.HasPrefix(p.Path, path) {
-				if params == nil {
-					params = make([]Parameter, 0, 1)
-				}
 				params = append(params, p)
 			}
 			return true
@@ -77,6 +74,9 @@ func (dm *DataModel) GetAll(path string) []Parameter {
 		params = append(params, p)
 	} else if !ok {
 		// if a single parameter is not in the batch list, we must return empty to trigger a 9005
+		return nil
+	}
+	if len(params) == 0 {
 		return nil
 	}
 	return params
