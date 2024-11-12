@@ -222,11 +222,10 @@ func (dm *DataModel) ParameterNames(path string, nextLevel bool) []Parameter {
 	dm.values.forEach(func(p Parameter) (cont bool) {
 		if reg.MatchString(p.Path) {
 			params = append(params, p)
-		} else {
-			params = nil
-			return false
+			return true
 		}
-		return true
+		params = nil
+		return false
 	})
 	return params
 }
