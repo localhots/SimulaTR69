@@ -70,12 +70,14 @@ func (dm *DataModel) GetAll(path string) []Parameter {
 					params = make([]Parameter, 0, 1)
 				}
 				params = append(params, p)
-				return true
 			}
-			return false
+			return true
 		})
 	} else if p, ok := dm.values.get(path); ok {
 		params = append(params, p)
+	} else if !ok {
+		// if a single parameter is not in the batch list, we must return empty to trigger a 9005
+		return nil
 	}
 	return params
 }
@@ -222,10 +224,8 @@ func (dm *DataModel) ParameterNames(path string, nextLevel bool) []Parameter {
 	dm.values.forEach(func(p Parameter) (cont bool) {
 		if reg.MatchString(p.Path) {
 			params = append(params, p)
-			return true
 		}
-		params = nil
-		return false
+		return true
 	})
 	return params
 }
