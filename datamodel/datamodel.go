@@ -12,8 +12,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
@@ -225,7 +223,6 @@ func (dm *DataModel) ParameterNames(path string, nextLevel bool) []Parameter {
 		if reg.MatchString(p.Path) {
 			params = append(params, p)
 		} else {
-			log.Debug()
 			params = nil
 			return false
 		}
