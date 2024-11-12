@@ -72,8 +72,13 @@ func (dm *DataModel) GetAll(path string) []Parameter {
 		})
 	} else if p, ok := dm.values.get(path); ok {
 		params = append(params, p)
+	} else if !ok {
+		// if a single parameter is not in the batch list, we must return empty to trigger a 9005
+		return nil
 	}
-
+	if len(params) == 0 {
+		return nil
+	}
 	return params
 }
 

@@ -110,6 +110,15 @@ func TestEncodeGetParameterValuesResponse(t *testing.T) {
 	assert.Equal(t, string(getParameterValuesResponseTestData), string(b))
 }
 
+func TestEncodeGetParameterValuesFaultResponse(t *testing.T) {
+	env := NewEnvelope("123")
+	env.WithFault(FaultInvalidParameterName)
+
+	b, err := env.EncodePretty()
+	require.NoError(t, err)
+	assert.Equal(t, string(getParameterValuesFaultResponseTestData), string(b))
+}
+
 func TestEncodeGetParameterNamesResponse(t *testing.T) {
 	env := NewEnvelope("123")
 	params := []ParameterInfoStruct{

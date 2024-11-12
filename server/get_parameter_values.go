@@ -13,6 +13,9 @@ func (s *Server) handleGetParameterValues(envID string, r *rpc.GetParameterValue
 	params := []rpc.ParameterValueEncoder{}
 	for _, path := range names {
 		batch := s.dm.GetAll(path)
+		if batch == nil {
+			break
+		}
 		for _, p := range batch {
 			if p.Object {
 				continue
@@ -28,6 +31,9 @@ func (s *Server) handleGetParameterValues(envID string, r *rpc.GetParameterValue
 	}
 
 	resp := rpc.NewEnvelope(envID)
+	if len(params) == 0 {
+		return resp.WithFaultMsg(rpc.FaultInvalidParameterName, "Invalid Parameter Name")
+	}
 	resp.Body.GetParameterValuesResponse = &rpc.GetParameterValuesResponseEncoder{
 		ParameterList: rpc.ParameterListEncoder{
 			ArrayType:       rpc.ArrayType("cwmp:ParameterValue", len(params)),
