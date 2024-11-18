@@ -28,6 +28,7 @@ type Server struct {
 	dm                   *datamodel.DataModel
 	cookies              http.CookieJar
 	informScheduleUpdate chan struct{}
+	stop                 chan struct{}
 	startedAt            time.Time
 	informMux            sync.Mutex
 	metrics              *metrics.Metrics
@@ -51,6 +52,7 @@ func (s *Server) Start(ctx context.Context) error {
 
 // Stop stops the server.
 func (s *Server) Stop(ctx context.Context) error {
+	close(s.stop)
 	if err := s.dm.SaveState(Config.StateFilePath); err != nil {
 		return fmt.Errorf("save state: %w", err)
 	}
@@ -76,6 +78,7 @@ func New(dm *datamodel.DataModel) *Server {
 		dm:                   dm,
 		cookies:              jar,
 		informScheduleUpdate: make(chan struct{}, 1),
+		stop:                 make(chan struct{}),
 		metrics:              metrics.NewNoop(),
 	}
 	mux.HandleFunc("/cwmp", s.handleConnectionRequest)
@@ -194,6 +197,15 @@ func (s *Server) pretendOfflineFor(dur time.Duration) {
 	s.dm.SetPeriodicInformTime(downUntil)
 	s.resetInformTimer()
 	s.startedAt = downUntil
+}
+
+func (s *Server) stopped() bool {
+	select {
+	case <-s.stop:
+		return true
+	default:
+		return false
+	}
 }
 
 var envelopeID uint64
