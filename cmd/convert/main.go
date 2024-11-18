@@ -1,5 +1,6 @@
 // This package allows to convert datamodels into a CSV format that is supported
 // by this simulator.
+// nolint:gochecknoglobals
 package main
 
 import (
