@@ -4,7 +4,7 @@ COPY . .
 RUN go mod download
 RUN go build -o sim cmd/server/main.go
 
-FROM scratch
+FROM busybox
 WORKDIR /app
 COPY --from=build /build/sim .
 
