@@ -21,6 +21,10 @@ import (
 
 func (s *Server) periodicInform(ctx context.Context) {
 	for {
+		if s.stopped() {
+			return
+		}
+
 		it := s.dm.PeriodicInformTime()
 		if delay := time.Until(it); delay > 0 {
 			log.Info().Time("time", it).Msg("Inform delayed")
@@ -36,6 +40,8 @@ func (s *Server) periodicInform(ctx context.Context) {
 				s.dm.AddEvent(rpc.EventPeriodic)
 				s.Inform(ctx)
 			case <-s.informScheduleUpdate:
+			case <-s.stop:
+				return
 			}
 		} else {
 			log.Info().Msg("Periodic inform disabled")
@@ -51,6 +57,10 @@ func (s *Server) resetInformTimer() {
 // Inform initiates an inform message to the ACS.
 // nolint:gocyclo
 func (s *Server) Inform(ctx context.Context) {
+	if s.stopped() {
+		return
+	}
+
 	// Allow only one session at a time
 	if ok := s.informMux.TryLock(); !ok {
 		return
