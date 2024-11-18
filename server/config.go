@@ -13,6 +13,7 @@ import (
 )
 
 // Config is a global configuration store.
+// nolint:gochecknoglobals
 var Config struct {
 	// LogLevel controls how verbose the levels are. Supported values: trace,
 	// debug, info, warn, error, fatal, panic.

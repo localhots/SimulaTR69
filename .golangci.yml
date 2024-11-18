@@ -11,14 +11,17 @@ linters:
     - bodyclose
     - containedctx
     - contextcheck
+    - copyloopvar
+    - decorder
     - dupl
     - dupword
     - durationcheck
     - errchkjson
-    - errorlint
     - errname
-    - copyloopvar
+    - errorlint
+    - gochecknoglobals
     - goconst
+    - goimports
     - gocritic
     - gocyclo
     - gosec
