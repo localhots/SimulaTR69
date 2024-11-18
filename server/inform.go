@@ -176,7 +176,7 @@ func (s *Server) makeInformEnvelope() *rpc.EnvelopeEncoder {
 	}
 	s.dm.ClearNotifyParams()
 
-	env := newEnvelope()
+	env := s.newEnvelope()
 	env.Body.Inform = &rpc.InformRequestEncoder{
 		DeviceId: rpc.DeviceID{
 			Manufacturer: deviceID.Manufacturer,

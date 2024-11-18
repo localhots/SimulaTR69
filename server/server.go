@@ -30,6 +30,7 @@ type Server struct {
 	informScheduleUpdate chan struct{}
 	stop                 chan struct{}
 	startedAt            time.Time
+	envelopeID           uint64
 	informMux            sync.Mutex
 	metrics              *metrics.Metrics
 }
@@ -208,14 +209,12 @@ func (s *Server) stopped() bool {
 	}
 }
 
-var envelopeID uint64
-
-func newEnvelope() *rpc.EnvelopeEncoder {
-	return rpc.NewEnvelope(nextEnvelopeID())
+func (s *Server) newEnvelope() *rpc.EnvelopeEncoder {
+	return rpc.NewEnvelope(s.nextEnvelopeID())
 }
 
-func nextEnvelopeID() string {
-	id := atomic.AddUint64(&envelopeID, 1)
+func (s *Server) nextEnvelopeID() string {
+	id := atomic.AddUint64(&s.envelopeID, 1)
 	return strconv.FormatUint(id, 10)
 }
 
