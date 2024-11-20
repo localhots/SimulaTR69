@@ -240,6 +240,7 @@ func (s *Server) debugEnvelope(env *rpc.EnvelopeEncoder) {
 	logger := log.Info().Str("method", env.Method())
 	if env.Body.Inform != nil {
 		logger.Strs("events", s.dm.PendingEvents())
+		logger.Str("serial_no", env.Body.Inform.DeviceId.SerialNumber)
 	}
 	if env.Body.Fault != nil {
 		f := env.Body.Fault.Detail.Fault
