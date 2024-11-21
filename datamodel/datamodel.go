@@ -40,6 +40,8 @@ const (
 )
 
 // Forced values are values that must be on every inform, according to the Datamodel specifications
+//
+//nolint:gochecknoglobals
 var commonForced = newset[string](
 	"DeviceInfo.HardwareVersion",
 	"DeviceInfo.SoftwareVersion",
@@ -47,11 +49,13 @@ var commonForced = newset[string](
 	"ManagementServer.ParameterKey",
 	"ManagementServer.ConnectionRequestURL")
 
+//nolint:gochecknoglobals
 var tr098Forced = newset[string]([]string{
 	"DeviceSummary",
 	"DeviceInfo.SpecVersion",
 	"DeviceInfo.ProvisioningCode"}...).union(commonForced)
 
+//nolint:gochecknoglobals
 var tr181Forced = newset[string]([]string{
 	"RootDataModelVersion",
 	"ManagementServer.AliasBasedAddressing"}...).union(commonForced)
@@ -349,7 +353,7 @@ func (dm *DataModel) SetDownUntil(du time.Time) {
 // NotifyParams returns a list of parameters that should be included in the next
 // inform message. This will always include forced parameters.
 func (dm *DataModel) NotifyParams() []string {
-	params := newset[string](dm.notifyParams...).union(dm.ForcedParams())
+	params := newset[string](dm.notifyParams...).union(dm.forcedParams())
 
 	dm.values.forEach(func(p Parameter) (cont bool) {
 		if p.Notification == rpc.AttributeNotificationPassive {
@@ -377,7 +381,7 @@ func (dm *DataModel) ClearNotifyParams() {
 // Forced parameters
 //
 
-func (dm *DataModel) ForcedParams() set[string] {
+func (dm *DataModel) forcedParams() set[string] {
 	switch dm.version {
 	case tr098:
 		return prefixProtocol(tr098Forced, tr098Prefix)
@@ -483,12 +487,6 @@ func (s set[T]) add(v ...T) {
 	for _, v := range v {
 		s[v] = struct{}{}
 	}
-}
-
-// contains reports the existence of v in s
-func (s set[T]) contains(v T) bool {
-	_, ok := s[v]
-	return ok
 }
 
 // Slice returns the members of `s` as a slice in a random order
