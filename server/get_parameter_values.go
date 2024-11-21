@@ -14,6 +14,7 @@ func (s *Server) handleGetParameterValues(envID string, r *rpc.GetParameterValue
 	for _, path := range names {
 		batch := s.dm.GetAll(path)
 		if batch == nil {
+			params = []rpc.ParameterValueEncoder{}
 			break
 		}
 		for _, p := range batch {
