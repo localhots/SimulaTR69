@@ -39,6 +39,23 @@ const (
 	tr181Prefix = "Device."
 )
 
+// Forced values are values that must be on every inform, according to the Datamodel specifications
+var commonForced = newset[string](
+	"DeviceInfo.HardwareVersion",
+	"DeviceInfo.SoftwareVersion",
+	"DeviceInfo.ProvisioningCode",
+	"ManagementServer.ParameterKey",
+	"ManagementServer.ConnectionRequestURL")
+
+var tr098Forced = newset[string]([]string{
+	"DeviceSummary",
+	"DeviceInfo.SpecVersion",
+	"DeviceInfo.ProvisioningCode"}...).union(commonForced)
+
+var tr181Forced = newset[string]([]string{
+	"RootDataModelVersion",
+	"ManagementServer.AliasBasedAddressing"}...).union(commonForced)
+
 //
 // Accessors
 //
@@ -330,19 +347,18 @@ func (dm *DataModel) SetDownUntil(du time.Time) {
 //
 
 // NotifyParams returns a list of parameters that should be included in the next
-// inform message.
+// inform message. This will always include forced parameters.
 func (dm *DataModel) NotifyParams() []string {
-	params := make([]string, 0, len(dm.notifyParams))
-	copy(params, dm.notifyParams)
+	params := newset[string](dm.notifyParams...).union(dm.ForcedParams())
 
 	dm.values.forEach(func(p Parameter) (cont bool) {
-		if p.Notification == rpc.AttributeNotificationPassive && !slices.Contains(params, p.Path) {
-			params = append(params, p.Path)
+		if p.Notification == rpc.AttributeNotificationPassive && params.contains(p.Path) {
+			params.add(p.Path)
 		}
 		return true
 	})
 
-	return params
+	return params.slice()
 }
 
 // NotifyParam subscribes the ACS for the given parameter value.
@@ -355,6 +371,20 @@ func (dm *DataModel) NotifyParam(path string) {
 // ClearNotifyParams clears all previous parameter notifications.
 func (dm *DataModel) ClearNotifyParams() {
 	dm.notifyParams = []string{}
+}
+
+//
+// Forced parameters
+//
+
+func (dm *DataModel) ForcedParams() set[string] {
+	switch dm.version {
+	case tr098:
+		return prefixProtocol(tr098Forced, tr098Prefix)
+	case tr181:
+		return prefixProtocol(tr181Forced, tr181Prefix)
+	}
+	return commonForced
 }
 
 //
@@ -423,4 +453,63 @@ func newParameter(path string) Parameter {
 func parent(path string) string {
 	tokens := strings.Split(path, ".")
 	return strings.Join(tokens[:len(tokens)-1], ".")
+}
+
+// A set of comparable types
+type set[T comparable] map[T]struct{}
+
+func newset[T comparable](val ...T) set[T] {
+	s := make(set[T], len(val))
+	for _, v := range val {
+		s[v] = struct{}{}
+	}
+	return s
+}
+
+func (s set[T]) add(v ...T) {
+	for _, v := range v {
+		s[v] = struct{}{}
+	}
+}
+
+// contains reports the existence of v in s
+func (s set[T]) contains(v T) bool {
+	_, ok := s[v]
+	return ok
+}
+
+// Slice returns the members of `s` as a slice in a random order
+func (s set[T]) slice() []T {
+	result := make([]T, 0, len(s))
+	for v := range s {
+		result = append(result, v)
+	}
+	return result
+}
+
+// Union returns the union of `s` and `set`
+func (s set[T]) union(in set[T]) set[T] {
+	rv := make(set[T], max(len(s), len(in))) // the resulting set will have at least as many values as the largest input set.
+
+	// Yes, manually running through the sets instead of using Slice(), because that saves us from allocating two slices.
+	for v := range s {
+		rv.add(v)
+	}
+	for v := range in {
+		rv.add(v)
+	}
+	return rv
+}
+
+// prefix all members of a set of parameter values with its protocol-specific prefix
+func prefixProtocol(params set[string], protocolPrefix string) set[string] {
+	out := make(set[string], len(params))
+	for v := range params {
+		if strings.HasPrefix(v, protocolPrefix) {
+			out.add(v)
+			continue
+		}
+		out.add(protocolPrefix + v)
+	}
+	return out
 }
