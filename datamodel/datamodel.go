@@ -82,7 +82,8 @@ func (dm *DataModel) GetValue(path string) (p Parameter, ok bool) {
 	return dm.values.get(dm.prefixedPath(path))
 }
 
-// GetValues ...
+// GetValues returns all parameters in the given paths. If at least one
+// requested parameter is missing ok will be set to false.
 func (dm *DataModel) GetValues(paths ...string) (params []Parameter, ok bool) {
 	res := make(map[string]Parameter)
 	for _, path := range paths {
@@ -166,7 +167,7 @@ func (dm *DataModel) AddObject(name string) (int, error) {
 	}
 
 	reg := regexp.MustCompile(`^` + name + `\.(\d+)`)
-	var max int
+	var maxIndex int
 	dm.values.forEach(func(p Parameter) (cont bool) {
 		m := reg.FindStringSubmatch(p.Path)
 		if len(m) < 2 {
@@ -176,13 +177,13 @@ func (dm *DataModel) AddObject(name string) (int, error) {
 		if err != nil {
 			return true
 		}
-		if i > max {
-			max = i
+		if i > maxIndex {
+			maxIndex = i
 		}
 		return true
 	})
 
-	next := max + 1
+	next := maxIndex + 1
 	newName := fmt.Sprintf("%s.%d", name, next)
 	dm.values.save(Parameter{
 		Path:     newName,
