@@ -51,7 +51,6 @@ func (s *Server) handleDownload(envID string, r *rpc.DownloadRequest) *rpc.Envel
 			s.dm.AddEvent(rpc.EventTransferComplete)
 			s.dm.AddEvent(rpc.EventBoot)
 			status = rpc.DownloadNotCompleted
-			s.dm.NotifyParam("DeviceInfo.SoftwareVersion")
 			// Stop informs for the upgrade delay duration
 			s.pretendOfflineFor(Config.UpgradeDelay)
 		} else {

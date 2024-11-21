@@ -58,7 +58,8 @@ func (dm *DataModel) SetSerialNumber(val string) {
 
 // ConnectionRequestURL returns the connection request URL.
 func (dm *DataModel) ConnectionRequestURL() Parameter {
-	return dm.GetValue(pathConnectionRequestURL)
+	p, _ := dm.GetValue(pathConnectionRequestURL)
+	return p
 }
 
 // SetConnectionRequestURL sets connection request URL to the given value.
@@ -73,8 +74,11 @@ func (dm *DataModel) SetParameterKey(val string) {
 
 // PeriodicInformEnabled returns true if periodic inform is enabled.
 func (dm *DataModel) PeriodicInformEnabled() bool {
-	val := dm.GetValue(pathPeriodicInformEnable)
-	b, _ := strconv.ParseBool(val.Value)
+	p, ok := dm.GetValue(pathPeriodicInformEnable)
+	if !ok {
+		return false
+	}
+	b, _ := strconv.ParseBool(p.Value)
 	return b
 }
 
@@ -82,8 +86,11 @@ func (dm *DataModel) PeriodicInformEnabled() bool {
 func (dm *DataModel) PeriodicInformInterval() time.Duration {
 	const defaultInterval = 5 * time.Minute
 	const secondsInDay = int64(24 * time.Hour / time.Second)
-	val := dm.GetValue(pathPeriodicInformInterval)
-	i, _ := strconv.ParseInt(val.Value, 10, 32)
+	p, ok := dm.GetValue(pathPeriodicInformInterval)
+	if !ok {
+		return defaultInterval
+	}
+	i, _ := strconv.ParseInt(p.Value, 10, 32)
 	if i == 0 || i > secondsInDay {
 		return defaultInterval
 	}
@@ -97,8 +104,11 @@ func (dm *DataModel) SetPeriodicInformInterval(sec int64) {
 
 // PeriodicInformTime returns the value of periodic inform time.
 func (dm *DataModel) PeriodicInformTime() time.Time {
-	val := dm.GetValue(pathPeriodicInformTime)
-	i, _ := strconv.ParseInt(val.Value, 10, 32)
+	p, ok := dm.GetValue(pathPeriodicInformTime)
+	if !ok {
+		return time.Time{}
+	}
+	i, _ := strconv.ParseInt(p.Value, 10, 32)
 	return time.Unix(i, 0)
 }
 

@@ -4,6 +4,7 @@ package datamodel
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"strconv"
@@ -21,7 +22,6 @@ type DataModel struct {
 	version       version
 	commandKey    string
 	events        []string
-	notifyParams  []string
 	retryAttempts uint32
 	downUntil     time.Time
 	lock          sync.RWMutex
@@ -39,30 +39,6 @@ const (
 	tr181Prefix = "Device."
 )
 
-// Forced values are values that must be on every inform, according to the Datamodel specifications
-//
-// TR-098: https://cwmp-data-models.broadband-forum.org/tr-098-1-2-0.html#forced-inform-parameters
-// TR-181: https://cwmp-data-models.broadband-forum.org/tr-098-1-2-0.html#forced-inform-parameters
-//
-//nolint:gochecknoglobals
-var commonForced = newset[string](
-	"DeviceInfo.HardwareVersion",
-	"DeviceInfo.SoftwareVersion",
-	"DeviceInfo.ProvisioningCode",
-	"ManagementServer.ParameterKey",
-	"ManagementServer.ConnectionRequestURL")
-
-//nolint:gochecknoglobals
-var tr098Forced = newset[string]([]string{
-	"DeviceSummary",
-	"DeviceInfo.SpecVersion",
-	"DeviceInfo.ProvisioningCode"}...).union(commonForced)
-
-//nolint:gochecknoglobals
-var tr181Forced = newset[string]([]string{
-	"RootDataModelVersion",
-	"ManagementServer.AliasBasedAddressing"}...).union(commonForced)
-
 //
 // Accessors
 //
@@ -78,43 +54,46 @@ func (dm *DataModel) Reset() {
 	dm.version = unknownVersion
 	dm.commandKey = ""
 	dm.events = []string{}
-	dm.notifyParams = []string{}
 	dm.retryAttempts = 0
 	dm.downUntil = time.Time{}
 	dm.init()
 }
 
 // GetAll returns one or more parameters prefixed with the given path.
-func (dm *DataModel) GetAll(path string) []Parameter {
-	params := []Parameter{}
-	if strings.HasSuffix(path, ".") {
-		dm.values.forEach(func(p Parameter) (cont bool) {
-			if strings.HasPrefix(p.Path, path) {
-				params = append(params, p)
-			}
-			return true
-		})
-	} else if p, ok := dm.values.get(path); ok {
-		params = append(params, p)
-	} else if !ok {
-		// if a single parameter is not in the batch list, we must return empty to trigger a 9005
-		return nil
+func (dm *DataModel) GetAll(path string) (params []Parameter, ok bool) {
+	if !strings.HasSuffix(path, ".") {
+		p, ok := dm.values.get(path)
+		return []Parameter{p}, ok
 	}
-	if len(params) == 0 {
-		return nil
-	}
-	return params
+
+	dm.values.forEach(func(p Parameter) (cont bool) {
+		if strings.HasPrefix(p.Path, path) {
+			params = append(params, p)
+		}
+		return true
+	})
+
+	return params, len(params) > 0
 }
 
-// GetValue returns a parameter value with the given path. If it does not exist
-// a placeholder is returned.
-func (dm *DataModel) GetValue(path string) Parameter {
-	path = dm.prefixedPath(path)
-	v, ok := dm.values.get(path)
-	if !ok {
-		v = newParameter(path)
+// GetValue returns a parameter value with the given path and a boolean that
+// is equal to true if a parameter exists.
+func (dm *DataModel) GetValue(path string) (p Parameter, ok bool) {
+	return dm.values.get(dm.prefixedPath(path))
+}
+
+// GetValues ...
+func (dm *DataModel) GetValues(paths ...string) (params []Parameter, ok bool) {
+	res := make(map[string]Parameter)
+	for _, path := range paths {
+		p, _ok := dm.GetValue(path)
+		if !_ok {
+			ok = false
+		} else {
+			res[path] = p
+		}
 	}
-	return v
+	return slices.Collect(maps.Values(res)), ok
 }
 
 // SetValue sets the value of a given parameter.
@@ -350,64 +329,6 @@ func (dm *DataModel) SetDownUntil(du time.Time) {
 }
 
 //
-// Parameter change notification
-//
-
-// NotifyParams returns a list of parameters that should be included in the next
-// inform message. This will always include forced parameters.
-func (dm *DataModel) NotifyParams() []string {
-	params := newset[string](dm.notifyParams...).union(dm.forcedParams())
-
-	dm.values.forEach(func(p Parameter) (cont bool) {
-		if p.Notification == rpc.AttributeNotificationPassive {
-			params.add(p.Path)
-		}
-		return true
-	})
-
-	return params.slice()
-}
-
-// NotifyParam subscribes the ACS for the given parameter value.
-func (dm *DataModel) NotifyParam(path string) {
-	if !slices.Contains(dm.notifyParams, path) {
-		dm.notifyParams = append(dm.notifyParams, path)
-	}
-}
-
-// ClearNotifyParams clears all previous parameter notifications.
-func (dm *DataModel) ClearNotifyParams() {
-	dm.notifyParams = []string{}
-}
-
-//
-// Forced parameters
-//
-
-func (dm *DataModel) forcedParams() set[string] {
-	switch dm.version {
-	case tr098:
-		return prefixProtocol(tr098Forced, tr098Prefix)
-	case tr181:
-		return prefixProtocol(tr181Forced, tr181Prefix)
-	}
-	return commonForced
-}
-
-// prefix all members of a set of parameter values with its protocol-specific prefix
-func prefixProtocol(params set[string], protocolPrefix string) set[string] {
-	out := make(set[string], len(params))
-	for v := range params {
-		if strings.HasPrefix(v, protocolPrefix) {
-			out.add(v)
-			continue
-		}
-		out.add(protocolPrefix + v)
-	}
-	return out
-}
-
-//
 // Helpers
 //
 
@@ -473,44 +394,4 @@ func newParameter(path string) Parameter {
 func parent(path string) string {
 	tokens := strings.Split(path, ".")
 	return strings.Join(tokens[:len(tokens)-1], ".")
-}
-
-// A set of comparable types
-type set[T comparable] map[T]struct{}
-
-func newset[T comparable](val ...T) set[T] {
-	s := make(set[T], len(val))
-	for _, v := range val {
-		s[v] = struct{}{}
-	}
-	return s
-}
-
-func (s set[T]) add(v ...T) {
-	for _, v := range v {
-		s[v] = struct{}{}
-	}
-}
-
-// Slice returns the members of `s` as a slice in a random order
-func (s set[T]) slice() []T {
-	result := make([]T, 0, len(s))
-	for v := range s {
-		result = append(result, v)
-	}
-	return result
-}
-
-// Union returns the union of `s` and `set`
-func (s set[T]) union(in set[T]) set[T] {
-	rv := make(set[T], max(len(s), len(in))) // the resulting set will have at least as many values as the largest input set.
-
-	// Yes, manually running through the sets instead of using Slice(), because that saves us from allocating two slices.
-	for v := range s {
-		rv.add(v)
-	}
-	for v := range in {
-		rv.add(v)
-	}
-	return rv
 }

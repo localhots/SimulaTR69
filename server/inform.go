@@ -168,13 +168,11 @@ func (s *Server) makeInformEnvelope() *rpc.EnvelopeEncoder {
 			CommandKey: s.dm.CommandKey(),
 		})
 	}
-	params := []rpc.ParameterValueEncoder{
-		s.dm.ConnectionRequestURL().Encode(),
+	params, _ := s.dm.GetValues(s.dm.NotifyParams()...)
+	encParams := make([]rpc.ParameterValueEncoder, 0, len(params))
+	for _, p := range params {
+		encParams = append(encParams, p.Encode())
 	}
-	for _, p := range s.dm.NotifyParams() {
-		params = append(params, s.dm.GetValue(p).Encode())
-	}
-	s.dm.ClearNotifyParams()
 
 	env := s.newEnvelope()
 	env.Body.Inform = &rpc.InformRequestEncoder{
@@ -193,7 +191,7 @@ func (s *Server) makeInformEnvelope() *rpc.EnvelopeEncoder {
 		RetryCount:   int(s.dm.RetryAttempts()),
 		ParameterList: rpc.ParameterListEncoder{
 			ArrayType:       rpc.ArrayType("cwmp:ParameterValueStruct", len(params)),
-			ParameterValues: params,
+			ParameterValues: encParams,
 		},
 	}
 	return env
