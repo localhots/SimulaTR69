@@ -179,10 +179,11 @@ func (s *Server) makeInformEnvelope() *rpc.EnvelopeEncoder {
 	env := s.newEnvelope()
 	env.Body.Inform = &rpc.InformRequestEncoder{
 		DeviceId: rpc.DeviceID{
-			Manufacturer: deviceID.Manufacturer,
-			OUI:          deviceID.OUI,
-			ProductClass: deviceID.ProductClass,
-			SerialNumber: deviceID.SerialNumber,
+			Manufacturer:    deviceID.Manufacturer,
+			OUI:             deviceID.OUI,
+			ProductClass:    deviceID.ProductClass,
+			SerialNumber:    deviceID.SerialNumber,
+			SoftwareVersion: deviceID.SoftwareVersion,
 		},
 		Event: rpc.EventEncoder{
 			ArrayType: rpc.ArrayType("cwmp:EventStruct", len(events)),
@@ -222,7 +223,6 @@ func (s *Server) request(ctx context.Context, client *http.Client, env *rpc.Enve
 	for _, c := range s.cookies.Cookies(req.URL) {
 		req.AddCookie(c)
 	}
-
 	resp, err := client.Do(req)
 	if err != nil {
 		s.metrics.RequestFailures.Inc()

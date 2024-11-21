@@ -23,10 +23,11 @@ func TestEncodeInformRequest(t *testing.T) {
 	}
 	env.Body.Inform = &InformRequestEncoder{
 		DeviceId: DeviceID{
-			Manufacturer: "ACME Networks",
-			OUI:          "DECADE",
-			ProductClass: "G3000E",
-			SerialNumber: "G3000E-9799109101",
+			Manufacturer:    "ACME Networks",
+			OUI:             "DECADE",
+			ProductClass:    "G3000E",
+			SerialNumber:    "G3000E-9799109101",
+			SoftwareVersion: "G3000-1.2.3",
 		},
 		Event: EventEncoder{
 			ArrayType: ArrayType("cwmp:EventStruct", 1),

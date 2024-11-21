@@ -8,10 +8,11 @@ import (
 
 // DeviceID contains basic CPE info.
 type DeviceID struct {
-	Manufacturer string
-	OUI          string
-	ProductClass string
-	SerialNumber string
+	Manufacturer    string
+	OUI             string
+	ProductClass    string
+	SerialNumber    string
+	SoftwareVersion string
 }
 
 // DeviceID returns a DeviceID populated from the datamodel.
@@ -36,6 +37,11 @@ func (dm *DataModel) DeviceID() DeviceID {
 			"DeviceID.SerialNumber",
 			"Device.DeviceInfo.SerialNumber",
 			"InternetGatewayDevice.DeviceInfo.SerialNumber",
+		),
+		SoftwareVersion: dm.firstValue(
+			"DeviceID.SoftwareVersion",
+			"Device.DeviceInfo.SoftwareVersion",
+			"InternetGatewayDevice.DeviceInfo.SoftwareVersion",
 		),
 	}
 }
