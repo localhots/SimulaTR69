@@ -352,7 +352,7 @@ func (dm *DataModel) NotifyParams() []string {
 	params := newset[string](dm.notifyParams...).union(dm.ForcedParams())
 
 	dm.values.forEach(func(p Parameter) (cont bool) {
-		if p.Notification == rpc.AttributeNotificationPassive && params.contains(p.Path) {
+		if p.Notification == rpc.AttributeNotificationPassive {
 			params.add(p.Path)
 		}
 		return true
