@@ -387,6 +387,19 @@ func (dm *DataModel) ForcedParams() set[string] {
 	return commonForced
 }
 
+// prefix all members of a set of parameter values with its protocol-specific prefix
+func prefixProtocol(params set[string], protocolPrefix string) set[string] {
+	out := make(set[string], len(params))
+	for v := range params {
+		if strings.HasPrefix(v, protocolPrefix) {
+			out.add(v)
+			continue
+		}
+		out.add(protocolPrefix + v)
+	}
+	return out
+}
+
 //
 // Helpers
 //
@@ -499,17 +512,4 @@ func (s set[T]) union(in set[T]) set[T] {
 		rv.add(v)
 	}
 	return rv
-}
-
-// prefix all members of a set of parameter values with its protocol-specific prefix
-func prefixProtocol(params set[string], protocolPrefix string) set[string] {
-	out := make(set[string], len(params))
-	for v := range params {
-		if strings.HasPrefix(v, protocolPrefix) {
-			out.add(v)
-			continue
-		}
-		out.add(protocolPrefix + v)
-	}
-	return out
 }
