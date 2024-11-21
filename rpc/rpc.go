@@ -72,11 +72,10 @@ type EventStruct struct {
 }
 
 type DeviceID struct {
-	Manufacturer    string
-	OUI             string
-	ProductClass    string
-	SerialNumber    string
-	SoftwareVersion string
+	Manufacturer string
+	OUI          string
+	ProductClass string
+	SerialNumber string
 }
 
 type ParameterAttribute struct {
