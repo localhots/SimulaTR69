@@ -41,6 +41,9 @@ const (
 
 // Forced values are values that must be on every inform, according to the Datamodel specifications
 //
+// TR-098: https://cwmp-data-models.broadband-forum.org/tr-098-1-2-0.html#forced-inform-parameters
+// TR-181: https://cwmp-data-models.broadband-forum.org/tr-098-1-2-0.html#forced-inform-parameters
+//
 //nolint:gochecknoglobals
 var commonForced = newset[string](
 	"DeviceInfo.HardwareVersion",
