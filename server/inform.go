@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/url"
@@ -20,49 +21,50 @@ import (
 )
 
 func (s *Server) periodicInform(ctx context.Context) {
-	for {
-		if s.stopped() {
+	s.inform(ctx)
+	for !s.stopped() {
+		if !s.dm.PeriodicInformEnabled() {
+			log.Info().Msg("Periodic inform disabled")
+		}
+
+		delay := time.Until(s.nextInformTime())
+		log.Info().Str("delay", delay.String()).Msg("Scheduling next Inform request")
+
+		select {
+		case <-time.After(delay):
+			s.dm.AddEvent(rpc.EventPeriodic)
+			s.inform(ctx)
+		case <-s.informScheduleUpdate:
+		case <-s.stop:
 			return
 		}
-
-		it := s.dm.PeriodicInformTime()
-		if delay := time.Until(it); delay > 0 {
-			log.Info().Time("time", it).Msg("Inform delayed")
-			time.Sleep(delay)
-			s.Inform(ctx)
-		}
-
-		if s.dm.PeriodicInformEnabled() {
-			ii := s.dm.PeriodicInformInterval()
-			log.Info().Str("delay", ii.String()).Msg("Scheduling next Inform request")
-			select {
-			case <-time.After(ii):
-				s.dm.AddEvent(rpc.EventPeriodic)
-				s.Inform(ctx)
-			case <-s.informScheduleUpdate:
-			case <-s.stop:
-				return
-			}
-		} else {
-			log.Info().Msg("Periodic inform disabled")
-			<-s.informScheduleUpdate
-		}
 	}
+}
+
+func (s *Server) nextInformTime() time.Time {
+	return calcInformTime(
+		s.dm.PeriodicInformTime(),
+		s.startedAt,
+		time.Now(),
+		s.dm.PeriodicInformEnabled(),
+		s.dm.PeriodicInformInterval(),
+	)
 }
 
 func (s *Server) resetInformTimer() {
 	s.informScheduleUpdate <- struct{}{}
 }
 
-// Inform initiates an inform message to the ACS.
+// inform initiates an inform message to the ACS.
 // nolint:gocyclo
-func (s *Server) Inform(ctx context.Context) {
+func (s *Server) inform(ctx context.Context) {
 	if s.stopped() {
 		return
 	}
 
 	// Allow only one session at a time
 	if ok := s.informMux.TryLock(); !ok {
+		log.Warn().Msg("Inform in progress, dropping request")
 		return
 	}
 	defer s.informMux.Unlock()
@@ -299,4 +301,32 @@ func tcpPort(u *url.URL) string {
 		return "443"
 	}
 	return "80"
+}
+
+// calcInformTime calculates the time of the next inform based on all relevant
+// parameters. It is meant to be wrapped by Server.nextInformTime and is written
+// in such a way that it has no side effects and can be easily tested with unit
+// tests.
+func calcInformTime(
+	periodicInformTime time.Time,
+	startedAt time.Time,
+	now time.Time,
+	periodicInformEnabled bool,
+	periodicInformInterval time.Duration,
+) time.Time {
+	if periodicInformTime.IsZero() {
+		periodicInformTime = startedAt
+	}
+	if periodicInformTime.After(now) {
+		return periodicInformTime
+	}
+
+	if !periodicInformEnabled {
+		// At this point simulator should never inform
+		// Adding an arbitrarily large time offset to current time
+		return now.Add(365 * 24 * time.Hour)
+	}
+
+	intervalsElapsed := math.Ceil(now.Sub(periodicInformTime).Seconds() / periodicInformInterval.Seconds())
+	return periodicInformTime.Add(time.Duration(intervalsElapsed) * periodicInformInterval)
 }
