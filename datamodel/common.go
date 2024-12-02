@@ -90,8 +90,8 @@ func (dm *DataModel) PeriodicInformInterval() time.Duration {
 	if !ok {
 		return defaultInterval
 	}
-	i, _ := strconv.ParseInt(p.Value, 10, 32)
-	if i == 0 || i > secondsInDay {
+	i, err := strconv.ParseInt(p.Value, 10, 32)
+	if err != nil || i == 0 || i > secondsInDay {
 		return defaultInterval
 	}
 	return time.Duration(i) * time.Second
@@ -108,13 +108,16 @@ func (dm *DataModel) PeriodicInformTime() time.Time {
 	if !ok {
 		return time.Time{}
 	}
-	i, _ := strconv.ParseInt(p.Value, 10, 32)
-	return time.Unix(i, 0)
+	t, err := time.Parse(time.RFC3339, p.Value)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
 }
 
 // SetPeriodicInformTime sets periodic inform time to the given value.
 func (dm *DataModel) SetPeriodicInformTime(ts time.Time) {
-	dm.SetValue(pathPeriodicInformTime, strconv.FormatInt(ts.Unix(), 10))
+	dm.SetValue(pathPeriodicInformTime, ts.UTC().Format(time.RFC3339))
 }
 
 // IsPeriodicInformParameter returns true if periodic inform is configured.
