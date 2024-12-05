@@ -31,9 +31,9 @@ type DataModel struct {
 type version string
 
 const (
-	unknownVersion version = ""
-	tr098          version = "TR098"
-	tr181          version = "TR181"
+	unknownVersion version = "Unknown"
+	tr098          version = "TR-098"
+	tr181          version = "TR-181"
 
 	tr098Prefix = "InternetGatewayDevice."
 	tr181Prefix = "Device."
@@ -57,6 +57,10 @@ func (dm *DataModel) Reset() {
 	dm.retryAttempts = 0
 	dm.downUntil = time.Time{}
 	dm.init()
+}
+
+func (dm *DataModel) Version() string {
+	return string(dm.version)
 }
 
 // GetAll returns one or more parameters prefixed with the given path.
