@@ -21,7 +21,7 @@ import (
 )
 
 func (s *Server) periodicInform(ctx context.Context) {
-	s.inform(ctx)
+	go s.inform(ctx)
 	for !s.stopped() {
 		if !s.dm.PeriodicInformEnabled() {
 			log.Info().Msg("Periodic inform disabled")
