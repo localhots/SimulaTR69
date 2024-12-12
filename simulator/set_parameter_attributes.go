@@ -1,4 +1,4 @@
-package server
+package simulator
 
 import (
 	"github.com/rs/zerolog/log"
@@ -7,7 +7,7 @@ import (
 )
 
 // AccessList values are intentionally not respected.
-func (s *Server) handleSetParameterAttributes(envID string, r *rpc.SetParameterAttributesRequest) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleSetParameterAttributes(envID string, r *rpc.SetParameterAttributesRequest) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "SetParameterAttributes").Msg("Received message")
 	r.Debug()
 	attrs := r.ParameterList.ParameterAttributes

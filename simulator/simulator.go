@@ -1,9 +1,9 @@
-package server
+package simulator
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"strconv"
@@ -17,14 +17,12 @@ import (
 
 	"github.com/localhots/SimulaTR69/datamodel"
 	"github.com/localhots/SimulaTR69/rpc"
-	"github.com/localhots/SimulaTR69/server/metrics"
+	"github.com/localhots/SimulaTR69/simulator/metrics"
 )
 
-// Server is a server that can connect to an ACS and receive connection
-// requests.
-type Server struct {
-	httpServer           *http.Server
-	realPort             int
+// Simulator is a TR-069 device simulator.
+type Simulator struct {
+	server               server
 	dm                   *datamodel.DataModel
 	cookies              http.CookieJar
 	informScheduleUpdate chan struct{}
@@ -35,85 +33,76 @@ type Server struct {
 	metrics              *metrics.Metrics
 }
 
-// Start starts the server.
-func (s *Server) Start(ctx context.Context) error {
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", Config.Host, Config.Port))
-	if err != nil {
-		return fmt.Errorf("create TCP listener: %w", err)
-	}
-	s.realPort = listener.Addr().(*net.TCPAddr).Port
-	s.startedAt = time.Now()
-	s.dm.SetConnectionRequestURL(s.URL())
-	s.SetPeriodicInformInterval(Config.InformInterval)
-	go s.periodicInform(ctx)
+var errServiceUnavailable = errors.New("service unavailable")
 
-	log.Info().Str("server_url", s.URL()).Msg("Starting server")
-	return s.httpServer.Serve(listener)
-}
-
-// Stop stops the server.
-func (s *Server) Stop(ctx context.Context) error {
-	close(s.stop)
-	if err := s.dm.SaveState(Config.StateFilePath); err != nil {
-		return fmt.Errorf("save state: %w", err)
-	}
-	return s.httpServer.Shutdown(ctx)
-}
-
-// URL returns the URL of the server.
-func (s *Server) URL() string {
-	return fmt.Sprintf("http://%s:%d/cwmp", Config.Host, s.realPort)
-}
-
-// New creates a new server instance.
-func New(dm *datamodel.DataModel) *Server {
-	mux := http.NewServeMux()
+// New creates a new simulator instance.
+func New(dm *datamodel.DataModel) *Simulator {
 	jar, _ := cookiejar.New(nil)
-	s := &Server{
-		httpServer: &http.Server{
-			Addr:         fmt.Sprintf("%s:%d", Config.Host, Config.Port),
-			Handler:      mux,
-			ReadTimeout:  5 * time.Second,
-			WriteTimeout: 5 * time.Second,
-		},
+	return &Simulator{
+		server:               newNoopServer(),
 		dm:                   dm,
 		cookies:              jar,
 		informScheduleUpdate: make(chan struct{}, 1),
 		stop:                 make(chan struct{}),
 		metrics:              metrics.NewNoop(),
 	}
-	mux.HandleFunc("/cwmp", s.handleConnectionRequest)
-	return s
 }
 
-func NewWithMetrics(dm *datamodel.DataModel, m *metrics.Metrics) *Server {
+func NewWithMetrics(dm *datamodel.DataModel, m *metrics.Metrics) *Simulator {
 	s := New(dm)
 	s.metrics = m
 	return s
 }
 
-func (s *Server) SetPeriodicInformInterval(dur time.Duration) {
+// Start starts the simulator and initiates an inform session.
+func (s *Simulator) Start(ctx context.Context) error {
+	if Config.ConnReqEnableHTTP {
+		srv, err := newHTTPServer(s.handleConnectionRequest)
+		if err != nil {
+			return fmt.Errorf("start connection request server: %w", err)
+		}
+		s.server = srv
+		log.Info().Str("server_url", s.server.url()).Msg("Started connection request server")
+	}
+
+	s.startedAt = time.Now()
+	s.dm.SetConnectionRequestURL(s.server.url())
+	s.SetPeriodicInformInterval(Config.InformInterval)
+	go s.periodicInform(ctx)
+
+	return nil
+}
+
+// Stop stops the simulator.
+func (s *Simulator) Stop(ctx context.Context) error {
+	close(s.stop)
+	if err := s.dm.SaveState(Config.StateFilePath); err != nil {
+		return fmt.Errorf("save state: %w", err)
+	}
+	if s.server != nil {
+		return s.server.stop(ctx)
+	}
+	return nil
+}
+
+func (s *Simulator) SetPeriodicInformInterval(dur time.Duration) {
 	if dur > 0 {
 		s.dm.SetPeriodicInformInterval(int64(dur.Seconds()))
 	}
 }
 
-func (s *Server) handleConnectionRequest(w http.ResponseWriter, r *http.Request) {
-	// Simulate downtime
+func (s *Simulator) handleConnectionRequest(ctx context.Context) error {
 	if s.dm.DownUntil().After(time.Now()) {
-		retryAfter := int(time.Until(s.dm.DownUntil()).Seconds())
-		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Header().Set("Retry-After", strconv.Itoa(retryAfter))
-		return
+		return errServiceUnavailable
 	}
 
-	log.Info().Msg("Received HTTP connection request")
 	s.dm.AddEvent(rpc.EventConnectionRequest)
-	go s.inform(context.WithoutCancel(r.Context()))
+	go s.inform(context.WithoutCancel(ctx))
+	return nil
 }
 
 // nolint:gocyclo
-func (s *Server) handleEnvelope(env *rpc.EnvelopeDecoder) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleEnvelope(env *rpc.EnvelopeDecoder) *rpc.EnvelopeEncoder {
 	envID := env.Header.ID.Value
 	switch {
 	case env.Body.GetRPCMethods != nil:
@@ -158,32 +147,32 @@ func (s *Server) handleEnvelope(env *rpc.EnvelopeDecoder) *rpc.EnvelopeEncoder {
 	}
 }
 
-func (s *Server) handleGetQueuedTransfers(envID string) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleGetQueuedTransfers(envID string) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "GetQueuedTransfers").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
-func (s *Server) handleGetAllQueuedTransfers(envID string) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleGetAllQueuedTransfers(envID string) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "GetAllQueuedTransfers").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
-func (s *Server) handleScheduleInform(envID string) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleScheduleInform(envID string) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "ScheduleInform").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
-func (s *Server) handleSetVouchers(envID string) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleSetVouchers(envID string) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "SetVouchers").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
-func (s *Server) handleGetOptions(envID string) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleGetOptions(envID string) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "GetOptions").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
-func (s *Server) handleFault(envID string, r *rpc.FaultPayload) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleFault(envID string, r *rpc.FaultPayload) *rpc.EnvelopeEncoder {
 	log.Error().
 		Str("env_id", envID).
 		Str("code", r.Detail.Fault.FaultCode.String()).
@@ -192,7 +181,7 @@ func (s *Server) handleFault(envID string, r *rpc.FaultPayload) *rpc.EnvelopeEnc
 	return nil
 }
 
-func (s *Server) pretendOfflineFor(dur time.Duration) {
+func (s *Simulator) pretendOfflineFor(dur time.Duration) {
 	downUntil := time.Now().Add(dur)
 	s.dm.SetDownUntil(downUntil)
 	s.dm.SetPeriodicInformTime(downUntil)
@@ -200,7 +189,7 @@ func (s *Server) pretendOfflineFor(dur time.Duration) {
 	s.startedAt = downUntil
 }
 
-func (s *Server) stopped() bool {
+func (s *Simulator) stopped() bool {
 	select {
 	case <-s.stop:
 		return true
@@ -209,11 +198,11 @@ func (s *Server) stopped() bool {
 	}
 }
 
-func (s *Server) newEnvelope() *rpc.EnvelopeEncoder {
+func (s *Simulator) newEnvelope() *rpc.EnvelopeEncoder {
 	return rpc.NewEnvelope(s.nextEnvelopeID())
 }
 
-func (s *Server) nextEnvelopeID() string {
+func (s *Simulator) nextEnvelopeID() string {
 	id := atomic.AddUint64(&s.envelopeID, 1)
 	return strconv.FormatUint(id, 10)
 }

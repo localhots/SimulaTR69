@@ -1,4 +1,4 @@
-package server
+package simulator
 
 import (
 	"bytes"
@@ -20,7 +20,7 @@ import (
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
-func (s *Server) periodicInform(ctx context.Context) {
+func (s *Simulator) periodicInform(ctx context.Context) {
 	go s.inform(ctx)
 	for !s.stopped() {
 		if !s.dm.PeriodicInformEnabled() {
@@ -41,7 +41,7 @@ func (s *Server) periodicInform(ctx context.Context) {
 	}
 }
 
-func (s *Server) nextInformTime() time.Time {
+func (s *Simulator) nextInformTime() time.Time {
 	return calcInformTime(
 		s.dm.PeriodicInformTime(),
 		s.startedAt,
@@ -51,13 +51,13 @@ func (s *Server) nextInformTime() time.Time {
 	)
 }
 
-func (s *Server) resetInformTimer() {
+func (s *Simulator) resetInformTimer() {
 	s.informScheduleUpdate <- struct{}{}
 }
 
 // inform initiates an inform message to the ACS.
 // nolint:gocyclo
-func (s *Server) inform(ctx context.Context) {
+func (s *Simulator) inform(ctx context.Context) {
 	if s.stopped() {
 		return
 	}
@@ -160,7 +160,7 @@ func (s *Server) inform(ctx context.Context) {
 	}
 }
 
-func (s *Server) makeInformEnvelope() *rpc.EnvelopeEncoder {
+func (s *Simulator) makeInformEnvelope() *rpc.EnvelopeEncoder {
 	s.dm.SetUptime(time.Since(s.startedAt))
 	deviceID := s.dm.DeviceID()
 	events := []rpc.EventStruct{}
@@ -200,7 +200,7 @@ func (s *Server) makeInformEnvelope() *rpc.EnvelopeEncoder {
 }
 
 // Returns false only if request to ACS was attempted and failed.
-func (s *Server) request(ctx context.Context, client *http.Client, env *rpc.EnvelopeEncoder) (*http.Response, error) {
+func (s *Simulator) request(ctx context.Context, client *http.Client, env *rpc.EnvelopeEncoder) (*http.Response, error) {
 	var buf io.Reader
 	if env != nil {
 		s.debugEnvelope(env)
@@ -236,7 +236,7 @@ func (s *Server) request(ctx context.Context, client *http.Client, env *rpc.Enve
 	return resp, nil
 }
 
-func (s *Server) debugEnvelope(env *rpc.EnvelopeEncoder) {
+func (s *Simulator) debugEnvelope(env *rpc.EnvelopeEncoder) {
 	logger := log.Info().Str("method", env.Method())
 	if env.Body.Inform != nil {
 		logger.Strs("events", s.dm.PendingEvents())

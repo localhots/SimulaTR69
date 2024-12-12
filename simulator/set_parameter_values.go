@@ -1,4 +1,4 @@
-package server
+package simulator
 
 import (
 	"github.com/rs/zerolog/log"
@@ -7,7 +7,7 @@ import (
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
-func (s *Server) handleSetParameterValues(envID string, r *rpc.SetParameterValuesRequest) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleSetParameterValues(envID string, r *rpc.SetParameterValuesRequest) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "SetParameterValues").Msg("Received message")
 	r.Debug()
 	vals := r.ParameterList.ParameterValues

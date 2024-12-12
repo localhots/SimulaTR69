@@ -1,4 +1,4 @@
-package server
+package simulator
 
 import (
 	"strings"
@@ -8,7 +8,7 @@ import (
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
-func (s *Server) handleDeleteObject(envID string, r *rpc.DeleteObjectRequest) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleDeleteObject(envID string, r *rpc.DeleteObjectRequest) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "DeleteObject").Msg("Received message")
 	r.Debug()
 	resp := rpc.NewEnvelope(envID)

@@ -1,4 +1,4 @@
-package server
+package simulator
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
-func (s *Server) handleDownload(envID string, r *rpc.DownloadRequest) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleDownload(envID string, r *rpc.DownloadRequest) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "Download").Msg("Received message")
 	r.Debug()
 	resp := rpc.NewEnvelope(envID)

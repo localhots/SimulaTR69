@@ -1,4 +1,4 @@
-package server
+package simulator
 
 import (
 	"github.com/rs/zerolog/log"
@@ -6,7 +6,7 @@ import (
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
-func (s *Server) handleGetRPCMethods(envID string) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleGetRPCMethods(envID string) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "GetRPCMethods").Msg("Received message")
 	methods := rpc.SupportedMethods()
 	for _, m := range methods {
