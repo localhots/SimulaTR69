@@ -1,4 +1,4 @@
-package server
+package simulator
 
 import (
 	"github.com/rs/zerolog/log"

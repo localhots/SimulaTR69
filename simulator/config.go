@@ -1,4 +1,4 @@
-package server
+package simulator
 
 import (
 	"context"

@@ -12,7 +12,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/localhots/SimulaTR69/datamodel"
-	"github.com/localhots/SimulaTR69/server"
+	"github.com/localhots/SimulaTR69/simulator"
 )
 
 func main() {
@@ -21,10 +21,10 @@ func main() {
 		Out:        os.Stdout,
 		TimeFormat: time.DateTime,
 	})
-	if err := server.LoadConfig(ctx); err != nil {
+	if err := simulator.LoadConfig(ctx); err != nil {
 		log.Fatal().Err(err).Msg("Failed to load config")
 	}
-	cfg := server.Config
+	cfg := simulator.Config
 
 	log.Info().Str("file", cfg.DataModelPath).Msg("Loading datamodel")
 	defaults, err := datamodel.LoadDataModelFile(cfg.DataModelPath)
@@ -54,7 +54,7 @@ func main() {
 		Str("serial_number", id.SerialNumber).
 		Msg("Simulating device")
 
-	srv := server.New(dm)
+	srv := simulator.New(dm)
 	go func() {
 		// FIXME: something's off with error checking here
 		// nolint:errorlint

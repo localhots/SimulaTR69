@@ -1,4 +1,4 @@
-package server
+package simulator
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 
 	"github.com/localhots/SimulaTR69/datamodel"
 	"github.com/localhots/SimulaTR69/rpc"
-	"github.com/localhots/SimulaTR69/server/metrics"
+	"github.com/localhots/SimulaTR69/simulator/metrics"
 )
 
 // Server is a server that can connect to an ACS and receive connection

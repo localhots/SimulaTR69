@@ -1,4 +1,4 @@
-package server
+package simulator
 
 import (
 	"github.com/localhots/SimulaTR69/rpc"
