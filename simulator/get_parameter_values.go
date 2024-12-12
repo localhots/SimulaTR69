@@ -6,7 +6,7 @@ import (
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
-func (s *Server) handleGetParameterValues(envID string, r *rpc.GetParameterValuesRequest) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleGetParameterValues(envID string, r *rpc.GetParameterValuesRequest) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "GetParameterValues").Msg("Received message")
 	r.Debug()
 	resp := rpc.NewEnvelope(envID)
