@@ -12,7 +12,8 @@ func (s *Simulator) handleFactoryReset(envID string) *rpc.EnvelopeEncoder {
 
 	// TODO: Make it so factory reset action is executed at the end of Inform
 	s.dm.Reset()
-	s.dm.SetConnectionRequestURL(s.server.url())
+	s.dm.SetConnectionRequestURL(s.httpServer.url())
+	s.dm.SetUDPConnectionRequestAddress(s.udpServer.url())
 	if Config.SerialNumber != "" {
 		s.dm.SetSerialNumber(Config.SerialNumber)
 	}

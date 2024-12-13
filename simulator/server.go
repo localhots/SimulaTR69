@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/rs/zerolog/log"
@@ -13,6 +14,7 @@ import (
 
 // server is a common interface for connection requests servers.
 type server interface {
+	listenPort() int
 	url() string
 	stop(context.Context) error
 }
@@ -84,6 +86,10 @@ func (s *httpServer) handleConnectionRequest(w http.ResponseWriter, r *http.Requ
 	w.WriteHeader(http.StatusOK)
 }
 
+func (s *httpServer) listenPort() int {
+	return s.port
+}
+
 func (s *httpServer) url() string {
 	return fmt.Sprintf("http://%s:%d/cwmp", Config.Host, s.port)
 }
@@ -107,6 +113,73 @@ func getIP() (string, error) {
 }
 
 //
+// UDP server
+//
+
+type udpServer struct {
+	ip       string
+	port     int
+	listener *net.UDPConn
+	handler  crHandlerFn
+}
+
+func newUDPServer(ctx context.Context, port int, h crHandlerFn) (server, error) {
+	ip, err := getIP()
+	if err != nil {
+		return nil, fmt.Errorf("get ip address: %w", err)
+	}
+	fmt.Println(ip, port)
+
+	listener, err := net.ListenUDP("udp4", &net.UDPAddr{
+		IP:   net.ParseIP(ip),
+		Port: port,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create TCP listener: %w", err)
+	}
+
+	go func() {
+		var buf [1024]byte
+		for {
+			_, addr, err := listener.ReadFromUDP(buf[:])
+			if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
+				log.Error().Err(err).Msg("Error reading UDP connection")
+				continue
+			}
+			if addr == nil {
+				continue
+			}
+
+			log.Info().Str("addr", addr.String()).Msg("Accepted UDP connection request")
+			if err := h(ctx); err != nil {
+				log.Error().Err(err).Msg("Failed to handle connection request")
+			}
+		}
+	}()
+
+	return &udpServer{
+		ip:       ip,
+		port:     port,
+		listener: listener,
+		handler:  h,
+	}, nil
+}
+
+func (s *udpServer) listenPort() int {
+	return s.port
+}
+
+func (s *udpServer) url() string {
+	return fmt.Sprintf("%s:%d", s.ip, s.port)
+}
+
+func (s *udpServer) stop(_ context.Context) error {
+	// Safe to ignore any errors here
+	_ = s.listener.Close()
+	return nil
+}
+
+//
 // No-op server
 //
 
@@ -117,10 +190,14 @@ func newNoopServer() server {
 	return noopServer{}
 }
 
-func (n noopServer) url() string {
+func (s noopServer) listenPort() int {
+	return 0
+}
+
+func (s noopServer) url() string {
 	return ""
 }
 
-func (n noopServer) stop(_ context.Context) error {
+func (s noopServer) stop(_ context.Context) error {
 	return nil
 }

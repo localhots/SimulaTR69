@@ -41,14 +41,15 @@ func (dm *DataModel) DeviceID() DeviceID {
 }
 
 const (
-	pathSerialNumber           = "DeviceInfo.SerialNumber"
-	pathSoftwareVersion        = "DeviceInfo.SoftwareVersion"
-	pathUptime                 = "DeviceInfo.UpTime"
-	pathConnectionRequestURL   = "ManagementServer.ConnectionRequestURL"
-	pathParameterKey           = "ManagementServer.ParameterKey"
-	pathPeriodicInformEnable   = "ManagementServer.PeriodicInformEnable"
-	pathPeriodicInformTime     = "ManagementServer.PeriodicInformTime"
-	pathPeriodicInformInterval = "ManagementServer.PeriodicInformInterval"
+	pathSerialNumber                = "DeviceInfo.SerialNumber"
+	pathSoftwareVersion             = "DeviceInfo.SoftwareVersion"
+	pathUptime                      = "DeviceInfo.UpTime"
+	pathConnectionRequestURL        = "ManagementServer.ConnectionRequestURL"
+	pathUDPConnectionRequestAddress = "ManagementServer.UDPConnectionRequestAddress"
+	pathParameterKey                = "ManagementServer.ParameterKey"
+	pathPeriodicInformEnable        = "ManagementServer.PeriodicInformEnable"
+	pathPeriodicInformTime          = "ManagementServer.PeriodicInformTime"
+	pathPeriodicInformInterval      = "ManagementServer.PeriodicInformInterval"
 )
 
 // SetSerialNumber sets serial number to the given value.
@@ -65,6 +66,17 @@ func (dm *DataModel) ConnectionRequestURL() Parameter {
 // SetConnectionRequestURL sets connection request URL to the given value.
 func (dm *DataModel) SetConnectionRequestURL(val string) {
 	dm.SetValue(pathConnectionRequestURL, val)
+}
+
+// UDPConnectionRequestAddress returns the UDP connection request address.
+func (dm *DataModel) UDPConnectionRequestAddress() Parameter {
+	p, _ := dm.GetValue(pathUDPConnectionRequestAddress)
+	return p
+}
+
+// SetConnectionRequestURL sets UDP connection request address to the given value.
+func (dm *DataModel) SetUDPConnectionRequestAddress(val string) {
+	dm.SetValue(pathUDPConnectionRequestAddress, val)
 }
 
 // SetParameterKey sets parameter key to the given value.
