@@ -45,6 +45,8 @@ const (
 	pathSoftwareVersion             = "DeviceInfo.SoftwareVersion"
 	pathUptime                      = "DeviceInfo.UpTime"
 	pathConnectionRequestURL        = "ManagementServer.ConnectionRequestURL"
+	pathConnectionRequestUsername   = "ManagementServer.ConnectionRequestUsername"
+	pathConnectionRequestPassword   = "ManagementServer.ConnectionRequestPassword"
 	pathUDPConnectionRequestAddress = "ManagementServer.UDPConnectionRequestAddress"
 	pathParameterKey                = "ManagementServer.ParameterKey"
 	pathPeriodicInformEnable        = "ManagementServer.PeriodicInformEnable"
@@ -77,6 +79,18 @@ func (dm *DataModel) UDPConnectionRequestAddress() Parameter {
 // SetConnectionRequestURL sets UDP connection request address to the given value.
 func (dm *DataModel) SetUDPConnectionRequestAddress(val string) {
 	dm.SetValue(pathUDPConnectionRequestAddress, val)
+}
+
+// ConnectionRequestUsername returns the connection request username.
+func (dm *DataModel) ConnectionRequestUsername() Parameter {
+	p, _ := dm.GetValue(pathConnectionRequestURL)
+	return p
+}
+
+// ConnectionRequestPassword returns the connection request password.
+func (dm *DataModel) ConnectionRequestPassword() Parameter {
+	p, _ := dm.GetValue(pathConnectionRequestURL)
+	return p
 }
 
 // SetParameterKey sets parameter key to the given value.

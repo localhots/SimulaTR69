@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -19,6 +20,17 @@ type server interface {
 	stop(context.Context) error
 }
 
+type crParams struct {
+	ts  string // Timestamp
+	id  string // Message ID
+	un  string // Username
+	cn  string // Cnonce
+	sig string // Signature
+}
+
+// crHandlerFn is a function that handles connection requests.
+type crHandlerFn func(context.Context, crParams) error
+
 //
 // HTTP server
 //
@@ -29,9 +41,6 @@ type httpServer struct {
 	handler    crHandlerFn
 	port       int
 }
-
-// crHandlerFn is a function that handles connection requests.
-type crHandlerFn func(context.Context) error
 
 func newHTTPServer(h crHandlerFn) (server, error) {
 	var err error
@@ -73,9 +82,21 @@ func newHTTPServer(h crHandlerFn) (server, error) {
 
 func (s *httpServer) handleConnectionRequest(w http.ResponseWriter, r *http.Request) {
 	log.Info().Msg("Received HTTP connection request")
-	err := s.handler(r.Context())
+	q := r.URL.Query()
+	params := crParams{
+		ts:  q.Get("ts"),
+		id:  q.Get("id"),
+		un:  q.Get("un"),
+		cn:  q.Get("cn"),
+		sig: q.Get("sig"),
+	}
+	err := s.handler(r.Context(), params)
 	if errors.Is(err, errServiceUnavailable) {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
+		return
+	}
+	if errors.Is(err, errForbidden) {
+		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	}
 	if err != nil {
@@ -141,7 +162,7 @@ func newUDPServer(ctx context.Context, port int, h crHandlerFn) (server, error) 
 	go func() {
 		var buf [1024]byte
 		for {
-			_, addr, err := listener.ReadFromUDP(buf[:])
+			n, addr, err := listener.ReadFromUDP(buf[:])
 			if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
 				log.Error().Err(err).Msg("Error reading UDP connection")
 				continue
@@ -151,7 +172,32 @@ func newUDPServer(ctx context.Context, port int, h crHandlerFn) (server, error) 
 			}
 
 			log.Info().Str("addr", addr.String()).Msg("Accepted UDP connection request")
-			if err := h(ctx); err != nil {
+			fmt.Println(n, "|", string(buf[:]), "|")
+			if n == 0 {
+				log.Warn().Msg("Received empty UDP message")
+				continue
+			}
+			tokens := strings.Fields(string(buf[:]))
+			if len(tokens) < 3 || tokens[0] != "GET" || !strings.HasPrefix(tokens[2], "HTTP/") {
+				log.Warn().Msg("Received invalid UDP message")
+				fmt.Println(len(tokens), tokens)
+				continue
+			}
+			u, err := url.Parse(tokens[1])
+			if err != nil {
+				log.Error().Err(err).Msg("Error parsing URL")
+				continue
+			}
+			q := u.Query()
+			params := crParams{
+				ts:  q.Get("ts"),
+				id:  q.Get("id"),
+				un:  q.Get("un"),
+				cn:  q.Get("cn"),
+				sig: q.Get("sig"),
+			}
+
+			if err := h(ctx, params); err != nil {
 				log.Error().Err(err).Msg("Failed to handle connection request")
 			}
 		}

@@ -2,6 +2,9 @@ package simulator
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha1"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -34,7 +37,10 @@ type Simulator struct {
 	metrics              *metrics.Metrics
 }
 
-var errServiceUnavailable = errors.New("service unavailable")
+var (
+	errServiceUnavailable = errors.New("service unavailable")
+	errForbidden          = errors.New("forbidden")
+)
 
 // New creates a new simulator instance.
 func New(dm *datamodel.DataModel) *Simulator {
@@ -113,9 +119,16 @@ func (s *Simulator) SetPeriodicInformInterval(dur time.Duration) {
 	}
 }
 
-func (s *Simulator) handleConnectionRequest(ctx context.Context) error {
+func (s *Simulator) handleConnectionRequest(ctx context.Context, params crParams) error {
 	if s.dm.DownUntil().After(time.Now()) {
 		return errServiceUnavailable
+	}
+	if params.un != s.dm.ConnectionRequestUsername().Value {
+		return errForbidden
+	}
+	sig := sign(params.ts+params.id+params.un+params.cn, s.dm.ConnectionRequestPassword().Value)
+	if sig != params.sig {
+		return errForbidden
 	}
 
 	s.dm.AddEvent(rpc.EventConnectionRequest)
@@ -227,6 +240,12 @@ func (s *Simulator) newEnvelope() *rpc.EnvelopeEncoder {
 func (s *Simulator) nextEnvelopeID() string {
 	id := atomic.AddUint64(&s.envelopeID, 1)
 	return strconv.FormatUint(id, 10)
+}
+
+func sign(input, key string) string {
+	h := hmac.New(sha1.New, []byte(key))
+	h.Write([]byte(input))
+	return base64.StdEncoding.EncodeToString(h.Sum(nil))
 }
 
 func prettyXML(b []byte) string {
