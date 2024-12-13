@@ -28,7 +28,9 @@ func (s *Simulator) periodicInform(ctx context.Context) {
 		}
 
 		delay := time.Until(s.nextInformTime())
-		log.Info().Str("delay", delay.String()).Msg("Scheduling next Inform request")
+		log.Info().
+			Str("delay", delay.Truncate(time.Millisecond).String()).
+			Msg("Scheduling next Inform request")
 
 		select {
 		case <-time.After(delay):
@@ -81,10 +83,10 @@ func (s *Simulator) inform(ctx context.Context) {
 		s.metrics.InformDuration.Observe(float64(time.Since(connectionStartTime).Milliseconds()))
 	}()
 	s.metrics.ConcurrentInforms.Inc()
-	s.metrics.ConnectionLatency.Observe(float64(time.Since(connectionStartTime).Milliseconds()))
 
 	log.Info().Str("acs_url", Config.ACSURL).Msg("Connecting to ACS")
 	client, closeFn, err := newClient(u.Hostname(), tcpPort(u))
+	s.metrics.ConnectionLatency.Observe(float64(time.Since(connectionStartTime).Milliseconds()))
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to connect to ACS")
 		s.metrics.RequestFailures.Inc()
