@@ -20,8 +20,10 @@ import (
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
+type sessionHandler func(ctx context.Context, client *http.Client)
+
 func (s *Simulator) periodicInform(ctx context.Context) {
-	go s.inform(ctx)
+	s.startSession(ctx, s.informHandler)
 	for !s.stopped() {
 		if !s.dm.PeriodicInformEnabled() {
 			log.Info().Msg("Periodic inform disabled")
@@ -35,7 +37,12 @@ func (s *Simulator) periodicInform(ctx context.Context) {
 		select {
 		case <-time.After(delay):
 			s.dm.AddEvent(rpc.EventPeriodic)
-			s.inform(ctx)
+			s.startSession(ctx, s.informHandler)
+		case evt := <-s.pendingEvents:
+			s.dm.AddEvent(evt)
+			s.startSession(ctx, s.informHandler)
+		case tcr := <-s.transferComplete:
+			s.startSession(ctx, s.transferCompleteHandler(tcr))
 		case <-s.informScheduleUpdate:
 		case <-s.stop:
 			return
@@ -57,19 +64,18 @@ func (s *Simulator) resetInformTimer() {
 	s.informScheduleUpdate <- struct{}{}
 }
 
-// inform initiates an inform message to the ACS.
-// nolint:gocyclo
-func (s *Simulator) inform(ctx context.Context) {
+// startSession initiates a new session with the ACS.
+func (s *Simulator) startSession(ctx context.Context, handler sessionHandler) {
 	if s.stopped() {
 		return
 	}
 
 	// Allow only one session at a time
-	if ok := s.informMux.TryLock(); !ok {
-		log.Warn().Msg("Inform in progress, dropping request")
+	if ok := s.sessionMux.TryLock(); !ok {
+		log.Warn().Msg("Session in progress, dropping request")
 		return
 	}
-	defer s.informMux.Unlock()
+	defer s.sessionMux.Unlock()
 
 	u, err := url.Parse(Config.ACSURL)
 	if err != nil {
@@ -95,8 +101,14 @@ func (s *Simulator) inform(ctx context.Context) {
 	}
 	defer func() { _ = closeFn() }()
 
+	handler(ctx, &client)
+}
+
+// nolint:gocyclo
+func (s *Simulator) informHandler(ctx context.Context, client *http.Client) {
+	log.Info().Msg("Starting inform")
 	informEnv := s.makeInformEnvelope()
-	resp, err := s.request(ctx, &client, informEnv)
+	resp, err := s.request(ctx, client, informEnv)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make request")
 		s.dm.IncrRetryAttempts()
@@ -122,7 +134,7 @@ func (s *Simulator) inform(ctx context.Context) {
 	var nextEnv *rpc.EnvelopeEncoder
 	for {
 		log.Debug().Msg("Sending post-inform request")
-		resp, err := s.request(ctx, &client, nextEnv)
+		resp, err := s.request(ctx, client, nextEnv)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to make request")
 			return
@@ -159,6 +171,43 @@ func (s *Simulator) inform(ctx context.Context) {
 	events := informEnv.Body.Inform.Event.Events
 	if len(events) == 1 && events[0].EventCode == rpc.EventBootstrap {
 		s.dm.SetBootstrapped(true)
+	}
+}
+
+func (s *Simulator) transferCompleteHandler(tcr rpc.TransferCompleteRequestEncoder) sessionHandler {
+	return func(ctx context.Context, client *http.Client) {
+		log.Info().Msg("Sending TransferComplete message")
+		env := s.newEnvelope()
+		env.Body.TransferCompleteRequest = &tcr
+
+		resp, err := s.request(ctx, client, env)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to make request")
+			s.dm.IncrRetryAttempts()
+			return
+		}
+		b, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to read response")
+			s.metrics.RequestFailures.Inc()
+			s.dm.IncrRetryAttempts()
+			return
+		}
+		log.Trace().Msg("Response from ACS\n" + prettyXML(b))
+		resp.Body.Close()
+		if resp.StatusCode != http.StatusOK {
+			log.Error().Int("status", resp.StatusCode).Msg("Unexpected response status")
+			s.dm.IncrRetryAttempts()
+			return
+		}
+
+		s.dm.ResetRetryAttempts()
+		s.dm.ClearEvents()
+
+		if fs, ok := tcr.Fault.(*rpc.FaultStruct); ok && fs.FaultCode != 0 {
+			s.pendingEvents <- rpc.EventBoot
+			s.pretendOfflineFor(Config.UpgradeDelay)
+		}
 	}
 }
 

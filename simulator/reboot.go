@@ -13,7 +13,7 @@ func (s *Simulator) handleReboot(envID string, r *rpc.RebootRequest) *rpc.Envelo
 	s.dm.SetCommandKey(r.CommandKey)
 
 	go func() {
-		s.dm.AddEvent(rpc.EventBoot)
+		s.pendingEvents <- rpc.EventBoot
 		s.pretendOfflineFor(Config.RebootDelay)
 	}()
 	return resp

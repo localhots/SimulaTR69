@@ -17,6 +17,7 @@ func (s *Simulator) handleFactoryReset(envID string) *rpc.EnvelopeEncoder {
 		s.dm.SetSerialNumber(Config.SerialNumber)
 	}
 
+	s.pendingEvents <- rpc.EventBootstrap
 	s.pretendOfflineFor(Config.UpgradeDelay)
 
 	resp.Body.FactoryResetResponse = &rpc.FactoryResetResponseEncoder{}

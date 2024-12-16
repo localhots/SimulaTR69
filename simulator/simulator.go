@@ -22,15 +22,18 @@ import (
 
 // Simulator is a TR-069 device simulator.
 type Simulator struct {
-	server               server
-	dm                   *datamodel.DataModel
-	cookies              http.CookieJar
+	server     server
+	dm         *datamodel.DataModel
+	cookies    http.CookieJar
+	startedAt  time.Time
+	envelopeID uint64
+	metrics    *metrics.Metrics
+
+	pendingEvents        chan string
 	informScheduleUpdate chan struct{}
+	transferComplete     chan rpc.TransferCompleteRequestEncoder
 	stop                 chan struct{}
-	startedAt            time.Time
-	envelopeID           uint64
-	informMux            sync.Mutex
-	metrics              *metrics.Metrics
+	sessionMux           sync.Mutex
 }
 
 var errServiceUnavailable = errors.New("service unavailable")
@@ -42,9 +45,11 @@ func New(dm *datamodel.DataModel) *Simulator {
 		server:               newNoopServer(),
 		dm:                   dm,
 		cookies:              jar,
-		informScheduleUpdate: make(chan struct{}, 1),
-		stop:                 make(chan struct{}),
 		metrics:              metrics.NewNoop(),
+		pendingEvents:        make(chan string, 1),
+		informScheduleUpdate: make(chan struct{}, 1),
+		transferComplete:     make(chan rpc.TransferCompleteRequestEncoder, 1),
+		stop:                 make(chan struct{}),
 	}
 }
 
@@ -97,7 +102,7 @@ func (s *Simulator) handleConnectionRequest(ctx context.Context) error {
 	}
 
 	s.dm.AddEvent(rpc.EventConnectionRequest)
-	go s.inform(context.WithoutCancel(ctx))
+	go s.startSession(context.WithoutCancel(ctx), s.informHandler)
 	return nil
 }
 
@@ -184,7 +189,6 @@ func (s *Simulator) handleFault(envID string, r *rpc.FaultPayload) *rpc.Envelope
 func (s *Simulator) pretendOfflineFor(dur time.Duration) {
 	downUntil := time.Now().Add(dur)
 	s.dm.SetDownUntil(downUntil)
-	s.dm.SetPeriodicInformTime(downUntil)
 	s.resetInformTimer()
 	s.startedAt = downUntil
 }
