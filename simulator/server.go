@@ -82,14 +82,7 @@ func newHTTPServer(h crHandlerFn) (server, error) {
 
 func (s *httpServer) handleConnectionRequest(w http.ResponseWriter, r *http.Request) {
 	log.Info().Msg("Received HTTP connection request")
-	q := r.URL.Query()
-	params := crParams{
-		ts:  q.Get("ts"),
-		id:  q.Get("id"),
-		un:  q.Get("un"),
-		cn:  q.Get("cn"),
-		sig: q.Get("sig"),
-	}
+	params := parseCrParams(r.URL)
 	err := s.handler(r.Context(), params)
 	if errors.Is(err, errServiceUnavailable) {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
@@ -172,30 +165,16 @@ func newUDPServer(ctx context.Context, port int, h crHandlerFn) (server, error) 
 			}
 
 			log.Info().Str("addr", addr.String()).Msg("Accepted UDP connection request")
-			fmt.Println(n, "|", string(buf[:]), "|")
 			if n == 0 {
 				log.Warn().Msg("Received empty UDP message")
 				continue
 			}
-			tokens := strings.Fields(string(buf[:]))
-			if len(tokens) < 3 || tokens[0] != "GET" || !strings.HasPrefix(tokens[2], "HTTP/") {
-				log.Warn().Msg("Received invalid UDP message")
-				fmt.Println(len(tokens), tokens)
-				continue
-			}
-			u, err := url.Parse(tokens[1])
+			u, err := parseUDPMessage(buf[:])
 			if err != nil {
-				log.Error().Err(err).Msg("Error parsing URL")
+				log.Warn().Err(err).Msg("Failed to parse UDP message")
 				continue
 			}
-			q := u.Query()
-			params := crParams{
-				ts:  q.Get("ts"),
-				id:  q.Get("id"),
-				un:  q.Get("un"),
-				cn:  q.Get("cn"),
-				sig: q.Get("sig"),
-			}
+			params := parseCrParams(u)
 
 			if err := h(ctx, params); err != nil {
 				log.Error().Err(err).Msg("Failed to handle connection request")
@@ -246,4 +225,31 @@ func (s noopServer) url() string {
 
 func (s noopServer) stop(_ context.Context) error {
 	return nil
+}
+
+//
+// Utils
+//
+
+func parseUDPMessage(buf []byte) (*url.URL, error) {
+	tokens := strings.Fields(string(buf))
+	if len(tokens) < 3 || tokens[0] != "GET" || !strings.HasPrefix(tokens[2], "HTTP/") {
+		return nil, errors.New("invalid UDP message format")
+	}
+	u, err := url.Parse(tokens[1])
+	if err != nil {
+		return nil, fmt.Errorf("parse UDP message URL: %w", err)
+	}
+	return u, nil
+}
+
+func parseCrParams(u *url.URL) crParams {
+	q := u.Query()
+	return crParams{
+		ts:  q.Get("ts"),
+		id:  q.Get("id"),
+		un:  q.Get("un"),
+		cn:  q.Get("cn"),
+		sig: q.Get("sig"),
+	}
 }

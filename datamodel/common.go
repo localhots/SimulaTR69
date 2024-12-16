@@ -83,13 +83,13 @@ func (dm *DataModel) SetUDPConnectionRequestAddress(val string) {
 
 // ConnectionRequestUsername returns the connection request username.
 func (dm *DataModel) ConnectionRequestUsername() Parameter {
-	p, _ := dm.GetValue(pathConnectionRequestURL)
+	p, _ := dm.GetValue(pathConnectionRequestUsername)
 	return p
 }
 
 // ConnectionRequestPassword returns the connection request password.
 func (dm *DataModel) ConnectionRequestPassword() Parameter {
-	p, _ := dm.GetValue(pathConnectionRequestURL)
+	p, _ := dm.GetValue(pathConnectionRequestPassword)
 	return p
 }
 

@@ -3,8 +3,8 @@ package simulator
 import (
 	"context"
 	"crypto/hmac"
-	"crypto/sha1"
-	"encoding/base64"
+	"crypto/sha1" //nolint:gosec
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/http"
@@ -245,7 +245,7 @@ func (s *Simulator) nextEnvelopeID() string {
 func sign(input, key string) string {
 	h := hmac.New(sha1.New, []byte(key))
 	h.Write([]byte(input))
-	return base64.StdEncoding.EncodeToString(h.Sum(nil))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func prettyXML(b []byte) string {
