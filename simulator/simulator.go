@@ -30,9 +30,10 @@ type Simulator struct {
 	metrics    *metrics.Metrics
 
 	pendingEvents        chan string
+	pendingRequests      chan func(*rpc.EnvelopeEncoder)
 	informScheduleUpdate chan struct{}
-	transferComplete     chan rpc.TransferCompleteRequestEncoder
 	stop                 chan struct{}
+	tasks                chan taskFn
 	sessionMux           sync.Mutex
 }
 
@@ -46,10 +47,11 @@ func New(dm *datamodel.DataModel) *Simulator {
 		dm:                   dm,
 		cookies:              jar,
 		metrics:              metrics.NewNoop(),
-		pendingEvents:        make(chan string, 1),
+		pendingEvents:        make(chan string, 5),
+		pendingRequests:      make(chan func(*rpc.EnvelopeEncoder), 5),
 		informScheduleUpdate: make(chan struct{}, 1),
-		transferComplete:     make(chan rpc.TransferCompleteRequestEncoder, 1),
 		stop:                 make(chan struct{}),
+		tasks:                make(chan taskFn, 5),
 	}
 }
 
@@ -74,6 +76,12 @@ func (s *Simulator) Start(ctx context.Context) error {
 	s.dm.SetConnectionRequestURL(s.server.url())
 	s.SetPeriodicInformInterval(Config.InformInterval)
 	go s.periodicInform(ctx)
+
+	if !s.dm.IsBootstrapped() {
+		s.pendingEvents <- rpc.EventBootstrap
+	} else {
+		s.pendingEvents <- rpc.EventBoot
+	}
 
 	return nil
 }
@@ -101,8 +109,10 @@ func (s *Simulator) handleConnectionRequest(ctx context.Context) error {
 		return errServiceUnavailable
 	}
 
-	s.dm.AddEvent(rpc.EventConnectionRequest)
-	go s.startSession(context.WithoutCancel(ctx), s.informHandler)
+	select {
+	case s.pendingEvents <- rpc.EventConnectionRequest:
+	default:
+	}
 	return nil
 }
 
@@ -146,6 +156,8 @@ func (s *Simulator) handleEnvelope(env *rpc.EnvelopeDecoder) *rpc.EnvelopeEncode
 		return s.handleGetOptions(envID)
 	case env.Body.Fault != nil:
 		return s.handleFault(envID, env.Body.Fault)
+	case env.Body.TransferCompleteResponse != nil:
+		return nil
 	default:
 		log.Warn().Msg("Unknown method")
 		return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
@@ -189,8 +201,8 @@ func (s *Simulator) handleFault(envID string, r *rpc.FaultPayload) *rpc.Envelope
 func (s *Simulator) pretendOfflineFor(dur time.Duration) {
 	downUntil := time.Now().Add(dur)
 	s.dm.SetDownUntil(downUntil)
-	s.resetInformTimer()
 	s.startedAt = downUntil
+	time.Sleep(dur)
 }
 
 func (s *Simulator) stopped() bool {

@@ -24,27 +24,37 @@ func (s *Simulator) handleDownload(envID string, r *rpc.DownloadRequest) *rpc.En
 		CompleteTime: time.Now().Format(time.RFC3339),
 	}
 	s.dm.SetCommandKey(r.CommandKey)
-	go s.asyncDownload(r)
 
-	return resp
-}
+	s.tasks <- func() taskFn {
+		tcr := rpc.TransferCompleteRequestEncoder{
+			CommandKey: s.dm.CommandKey(),
+			StartTime:  time.Now().UTC().Format(time.RFC3339),
+			Fault:      &rpc.FaultStruct{},
+		}
+		err := s.upgradeFirmware(r)
+		tcr.CompleteTime = time.Now().UTC().Format(time.RFC3339)
+		if err != nil {
+			tcr.Fault = &rpc.FaultStruct{
+				FaultCode:   rpc.FaultInternalError,
+				FaultString: err.Error(),
+			}
+		}
 
-func (s *Simulator) asyncDownload(r *rpc.DownloadRequest) {
-	tcr := rpc.TransferCompleteRequestEncoder{
-		CommandKey: s.dm.CommandKey(),
-		StartTime:  time.Now().UTC().Format(time.RFC3339),
-		Fault:      &rpc.FaultStruct{},
-	}
-	err := s.upgradeFirmware(r)
-	tcr.CompleteTime = time.Now().UTC().Format(time.RFC3339)
-	if err != nil {
-		tcr.Fault = &rpc.FaultStruct{
-			FaultCode:   rpc.FaultInternalError,
-			FaultString: err.Error(),
+		s.pendingRequests <- func(env *rpc.EnvelopeEncoder) {
+			env.Body.TransferCompleteRequest = &tcr
+		}
+		s.pendingEvents <- rpc.EventTransferComplete
+
+		return func() taskFn {
+			log.Debug().Dur("delay", Config.UpgradeDelay).Msg("Simulating firmware upgrade")
+			s.pretendOfflineFor(Config.UpgradeDelay)
+			log.Debug().Msg("Starting up")
+			s.pendingEvents <- rpc.EventBoot
+			return nil
 		}
 	}
 
-	s.transferComplete <- tcr
+	return resp
 }
 
 func (s *Simulator) upgradeFirmware(r *rpc.DownloadRequest) error {
