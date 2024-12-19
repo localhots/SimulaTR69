@@ -104,7 +104,7 @@ func (s *Simulator) SetPeriodicInformInterval(dur time.Duration) {
 	}
 }
 
-func (s *Simulator) handleConnectionRequest(ctx context.Context) error {
+func (s *Simulator) handleConnectionRequest(_ context.Context) error {
 	if s.dm.DownUntil().After(time.Now()) {
 		return errServiceUnavailable
 	}
