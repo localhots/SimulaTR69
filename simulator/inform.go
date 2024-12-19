@@ -15,6 +15,7 @@ import (
 
 	"github.com/icholy/digest"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/localhots/SimulaTR69/rpc"
@@ -126,7 +127,7 @@ func (s *Simulator) informHandler(ctx context.Context, client *http.Client) {
 		s.dm.IncrRetryAttempts()
 		return
 	}
-	log.Trace().Msg("Response from ACS\n" + prettyXML(b))
+	logPrettyXML("Response from ACS", b)
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		log.Error().Int("status", resp.StatusCode).Msg("Unexpected response status")
@@ -203,8 +204,7 @@ func (s *Simulator) send(ctx context.Context, client *http.Client, env *rpc.Enve
 		return nil, nil
 	}
 
-	// FIXME: make conditional call to prettyXML
-	log.Trace().Msg("Response from ACS\n" + prettyXML(b))
+	logPrettyXML("Response from ACS", b)
 	acsRequestEnv, err := rpc.Decode(b)
 	if err != nil {
 		return nil, fmt.Errorf("decode envelope: %w", err)
@@ -261,7 +261,7 @@ func (s *Simulator) request(ctx context.Context, client *http.Client, env *rpc.E
 		if err != nil {
 			return nil, fmt.Errorf("encode envelope: %w", err)
 		}
-		log.Trace().Msg("Request from ACS\n" + prettyXML(b))
+		logPrettyXML("Request from ACS", b)
 		buf = bytes.NewBuffer(b)
 	} else {
 		log.Info().Msg("Sending empty POST request")
@@ -406,4 +406,10 @@ func calcInformTime(
 
 	intervalsElapsed := math.Ceil(now.Sub(periodicInformTime).Seconds() / periodicInformInterval.Seconds())
 	return periodicInformTime.Add(time.Duration(intervalsElapsed) * periodicInformInterval)
+}
+
+func logPrettyXML(msg string, x []byte) {
+	if log.Logger.GetLevel() == zerolog.TraceLevel {
+		log.Trace().Msg(msg + "\n" + prettyXML(x))
+	}
 }
