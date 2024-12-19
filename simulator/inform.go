@@ -15,13 +15,18 @@ import (
 
 	"github.com/icholy/digest"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
+type (
+	sessionHandler func(ctx context.Context, client *http.Client)
+	taskFn         func() taskFn
+)
+
 func (s *Simulator) periodicInform(ctx context.Context) {
-	go s.inform(ctx)
 	for !s.stopped() {
 		if !s.dm.PeriodicInformEnabled() {
 			log.Info().Msg("Periodic inform disabled")
@@ -35,11 +40,19 @@ func (s *Simulator) periodicInform(ctx context.Context) {
 		select {
 		case <-time.After(delay):
 			s.dm.AddEvent(rpc.EventPeriodic)
-			s.inform(ctx)
+			s.startSession(ctx, s.informHandler)
+		case evt := <-s.pendingEvents:
+			s.dm.AddEvent(evt)
+			s.startSession(ctx, s.informHandler)
 		case <-s.informScheduleUpdate:
 		case <-s.stop:
 			return
 		}
+
+		// Run all avialable tasks after session is finished
+		log.Debug().Msg("Start processing tasks")
+		s.processTasks()
+		log.Debug().Msg("Finished processing tasks")
 	}
 }
 
@@ -57,19 +70,18 @@ func (s *Simulator) resetInformTimer() {
 	s.informScheduleUpdate <- struct{}{}
 }
 
-// inform initiates an inform message to the ACS.
-// nolint:gocyclo
-func (s *Simulator) inform(ctx context.Context) {
+// startSession initiates a new session with the ACS.
+func (s *Simulator) startSession(ctx context.Context, handler sessionHandler) {
 	if s.stopped() {
 		return
 	}
 
 	// Allow only one session at a time
-	if ok := s.informMux.TryLock(); !ok {
-		log.Warn().Msg("Inform in progress, dropping request")
+	if ok := s.sessionMux.TryLock(); !ok {
+		log.Warn().Msg("Session in progress, dropping request")
 		return
 	}
-	defer s.informMux.Unlock()
+	defer s.sessionMux.Unlock()
 
 	u, err := url.Parse(Config.ACSURL)
 	if err != nil {
@@ -95,8 +107,14 @@ func (s *Simulator) inform(ctx context.Context) {
 	}
 	defer func() { _ = closeFn() }()
 
+	handler(ctx, &client)
+}
+
+// nolint:gocyclo
+func (s *Simulator) informHandler(ctx context.Context, client *http.Client) {
+	log.Info().Msg("Starting inform")
 	informEnv := s.makeInformEnvelope()
-	resp, err := s.request(ctx, &client, informEnv)
+	resp, err := s.request(ctx, client, informEnv)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make request")
 		s.dm.IncrRetryAttempts()
@@ -109,7 +127,7 @@ func (s *Simulator) inform(ctx context.Context) {
 		s.dm.IncrRetryAttempts()
 		return
 	}
-	log.Trace().Msg("Response from ACS\n" + prettyXML(b))
+	logPrettyXML("Response from ACS", b)
 	resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
 		log.Error().Int("status", resp.StatusCode).Msg("Unexpected response status")
@@ -120,46 +138,79 @@ func (s *Simulator) inform(ctx context.Context) {
 	s.dm.ResetRetryAttempts()
 	s.dm.ClearEvents()
 	var nextEnv *rpc.EnvelopeEncoder
+pendingRequests:
 	for {
-		log.Debug().Msg("Sending post-inform request")
-		resp, err := s.request(ctx, &client, nextEnv)
+		select {
+		case envelopeBuilder := <-s.pendingRequests:
+			env := s.newEnvelope()
+			envelopeBuilder(env)
+
+			acsResponseEnv, err := s.send(ctx, client, env)
+			if err != nil {
+				log.Error().Err(err).Msg("Failed to make request")
+				s.metrics.RequestFailures.Inc()
+				return
+			}
+			nextEnv = s.handleEnvelope(acsResponseEnv)
+		default:
+			break pendingRequests
+		}
+	}
+	for {
+		acsRequestEnv, err := s.send(ctx, client, nextEnv)
 		if err != nil {
 			log.Error().Err(err).Msg("Failed to make request")
-			return
-		}
-		if resp.Body == nil {
-			log.Info().Msg("Got empty response from ACS, inform finished")
-			break
-		}
-		b, err := io.ReadAll(resp.Body)
-		if err != nil {
-			log.Error().Err(err).Msg("Failed to read request")
 			s.metrics.RequestFailures.Inc()
 			return
 		}
-		_ = resp.Body.Close()
-		if len(b) == 0 {
+		if acsRequestEnv == nil {
 			log.Info().Msg("Got empty response from ACS, inform finished")
 			break
-		}
-		log.Trace().Msg("Response from ACS\n" + prettyXML(b))
-
-		acsRequestEnv, err := rpc.Decode(b)
-		if err != nil {
-			log.Error().Err(err).Str("body", string(b)).Msg("Failed to decode envelope")
-			return
 		}
 
 		nextEnv = s.handleEnvelope(acsRequestEnv)
 		if nextEnv == nil {
-			return
+			break
 		}
 	}
 
-	events := informEnv.Body.Inform.Event.Events
-	if len(events) == 1 && events[0].EventCode == rpc.EventBootstrap {
-		s.dm.SetBootstrapped(true)
+	for _, evt := range informEnv.Body.Inform.Event.Events {
+		if evt.EventCode == rpc.EventBootstrap {
+			s.dm.SetBootstrapped(true)
+			break
+		}
 	}
+}
+
+func (s *Simulator) send(ctx context.Context, client *http.Client, env *rpc.EnvelopeEncoder) (*rpc.EnvelopeDecoder, error) {
+	log.Debug().Msg("Sending post-inform request")
+	resp, err := s.request(ctx, client, env)
+	if err != nil {
+		return nil, fmt.Errorf("make request: %w", err)
+	}
+	if resp.Body == nil {
+		// Got empty response from ACS, inform finished
+		return nil, nil
+	}
+	b, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+	if err := resp.Body.Close(); err != nil {
+		return nil, fmt.Errorf("close response buffer: %w", err)
+	}
+	if len(b) == 0 {
+		// Got empty response from ACS, inform finished
+		return nil, nil
+	}
+
+	logPrettyXML("Response from ACS", b)
+	acsRequestEnv, err := rpc.Decode(b)
+	if err != nil {
+		return nil, fmt.Errorf("decode envelope: %w", err)
+	}
+
+	return acsRequestEnv, nil
 }
 
 func (s *Simulator) makeInformEnvelope() *rpc.EnvelopeEncoder {
@@ -210,7 +261,7 @@ func (s *Simulator) request(ctx context.Context, client *http.Client, env *rpc.E
 		if err != nil {
 			return nil, fmt.Errorf("encode envelope: %w", err)
 		}
-		log.Trace().Msg("Request from ACS\n" + prettyXML(b))
+		logPrettyXML("Request from ACS", b)
 		buf = bytes.NewBuffer(b)
 	} else {
 		log.Info().Msg("Sending empty POST request")
@@ -236,6 +287,30 @@ func (s *Simulator) request(ctx context.Context, client *http.Client, env *rpc.E
 	}).Inc()
 
 	return resp, nil
+}
+
+func (s *Simulator) processTasks() {
+	// Any tasks that are produced as a result of current batch will be executed
+	// next time. This is done to allow tasks to schedule a session and a task
+	// that needs to be run after that session completes.
+	next := []taskFn{}
+	defer func() {
+		for _, t := range next {
+			s.tasks <- t
+		}
+	}()
+
+	// Process currently scheduled tasks.
+	for {
+		select {
+		case task := <-s.tasks:
+			if nt := task(); nt != nil {
+				next = append(next, nt)
+			}
+		default:
+			return
+		}
+	}
 }
 
 func (s *Simulator) debugEnvelope(env *rpc.EnvelopeEncoder) {
@@ -331,4 +406,10 @@ func calcInformTime(
 
 	intervalsElapsed := math.Ceil(now.Sub(periodicInformTime).Seconds() / periodicInformInterval.Seconds())
 	return periodicInformTime.Add(time.Duration(intervalsElapsed) * periodicInformInterval)
+}
+
+func logPrettyXML(msg string, x []byte) {
+	if log.Logger.GetLevel() == zerolog.TraceLevel {
+		log.Trace().Msg(msg + "\n" + prettyXML(x))
+	}
 }
