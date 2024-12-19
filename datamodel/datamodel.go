@@ -339,11 +339,6 @@ func (dm *DataModel) SetDownUntil(du time.Time) {
 
 func (dm *DataModel) init() {
 	dm.detectVersion()
-	if !dm.IsBootstrapped() {
-		dm.AddEvent(rpc.EventBootstrap)
-	} else {
-		dm.AddEvent(rpc.EventBoot)
-	}
 }
 
 func (dm *DataModel) detectVersion() {

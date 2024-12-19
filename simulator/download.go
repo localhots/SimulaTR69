@@ -2,6 +2,8 @@ package simulator
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -16,55 +18,84 @@ func (s *Simulator) handleDownload(envID string, r *rpc.DownloadRequest) *rpc.En
 	r.Debug()
 	resp := rpc.NewEnvelope(envID)
 
-	req, err := http.NewRequest(http.MethodGet, r.URL, nil)
-	if err != nil {
-		return resp.WithFault(rpc.FaultInternalError)
-	}
-	if r.Username != "" {
-		req.SetBasicAuth(r.Username, r.Password)
-	}
-	log.Debug().Str("url", r.URL).Msg("Downloading file")
-	hresp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return resp.WithFaultMsg(rpc.FaultInternalError, err.Error())
-	}
-	if hresp.Body == nil {
-		return resp.WithFaultMsg(rpc.FaultInternalError, "firmware file is empty")
-	}
-	defer hresp.Body.Close()
-	b, err := io.ReadAll(hresp.Body)
-	if err != nil {
-		return resp.WithFaultMsg(rpc.FaultInternalError, err.Error())
-	}
-	var status int
-	if r.FileType == rpc.FileTypeFirmwareUpgradeImage {
-		log.Debug().Msg("Parsing firmware file")
-		var ver struct {
-			Version string `json:"version"`
-		}
-		if err := json.Unmarshal(b, &ver); err != nil {
-			return resp.WithFault(rpc.FaultInternalError)
-		}
-		if ver.Version != "" {
-			log.Info().Str("version", ver.Version).Msg("Upgrading firmware")
-			s.dm.SetFirmwareVersion(ver.Version)
-			s.dm.AddEvent(rpc.EventTransferComplete)
-			s.dm.AddEvent(rpc.EventBoot)
-			status = rpc.DownloadNotCompleted
-			// Stop informs for the upgrade delay duration
-			s.pretendOfflineFor(Config.UpgradeDelay)
-		} else {
-			return resp.WithFaultMsg(rpc.FaultInternalError, "incompatible firmware")
-		}
-	} else {
-		status = rpc.DownloadCompleted
-	}
-
 	resp.Body.DownloadResponse = &rpc.DownloadResponseEncoder{
-		Status:       status,
+		Status:       rpc.DownloadNotCompleted,
 		StartTime:    time.Now().Format(time.RFC3339),
 		CompleteTime: time.Now().Format(time.RFC3339),
 	}
 	s.dm.SetCommandKey(r.CommandKey)
+
+	s.tasks <- func() taskFn {
+		tcr := rpc.TransferCompleteRequestEncoder{
+			CommandKey: s.dm.CommandKey(),
+			StartTime:  time.Now().UTC().Format(time.RFC3339),
+			Fault:      &rpc.FaultStruct{},
+		}
+		err := s.upgradeFirmware(r)
+		tcr.CompleteTime = time.Now().UTC().Format(time.RFC3339)
+		if err != nil {
+			tcr.Fault = &rpc.FaultStruct{
+				FaultCode:   rpc.FaultInternalError,
+				FaultString: err.Error(),
+			}
+		}
+
+		s.pendingRequests <- func(env *rpc.EnvelopeEncoder) {
+			env.Body.TransferCompleteRequest = &tcr
+		}
+		s.pendingEvents <- rpc.EventTransferComplete
+
+		return func() taskFn {
+			log.Debug().Dur("delay", Config.UpgradeDelay).Msg("Simulating firmware upgrade")
+			s.pretendOfflineFor(Config.UpgradeDelay)
+			log.Debug().Msg("Starting up")
+			s.pendingEvents <- rpc.EventBoot
+			return nil
+		}
+	}
+
 	return resp
+}
+
+func (s *Simulator) upgradeFirmware(r *rpc.DownloadRequest) error {
+	req, err := http.NewRequest(http.MethodGet, r.URL, nil)
+	if err != nil {
+		return fmt.Errorf("create new request: %w", err)
+	}
+	if r.Username != "" {
+		req.SetBasicAuth(r.Username, r.Password)
+	}
+
+	log.Debug().Str("url", r.URL).Msg("Downloading file")
+	hresp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("make request: %w", err)
+	}
+	if hresp.Body == nil {
+		return errors.New("empty download")
+	}
+	defer hresp.Body.Close()
+	b, err := io.ReadAll(hresp.Body)
+	if err != nil {
+		return fmt.Errorf("download: %w", err)
+	}
+
+	if r.FileType != rpc.FileTypeFirmwareUpgradeImage {
+		return nil
+	}
+
+	log.Debug().Msg("Parsing firmware file")
+	var ver struct {
+		Version string `json:"version"`
+	}
+	if err := json.Unmarshal(b, &ver); err != nil {
+		return fmt.Errorf("parse firmware upgrade file: %w", err)
+	}
+	if ver.Version == "" {
+		return errors.New("incompatible firmware")
+	}
+
+	log.Info().Str("version", ver.Version).Msg("Upgrading firmware")
+	s.dm.SetFirmwareVersion(ver.Version)
+	return nil
 }

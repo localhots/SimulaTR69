@@ -25,16 +25,20 @@ import (
 
 // Simulator is a TR-069 device simulator.
 type Simulator struct {
-	httpServer           server
-	udpServer            server
-	dm                   *datamodel.DataModel
-	cookies              http.CookieJar
+	httpServer server
+	udpServer  server
+	dm         *datamodel.DataModel
+	cookies    http.CookieJar
+	startedAt  time.Time
+	envelopeID uint64
+	metrics    *metrics.Metrics
+
+	pendingEvents        chan string
+	pendingRequests      chan func(*rpc.EnvelopeEncoder)
 	informScheduleUpdate chan struct{}
 	stop                 chan struct{}
-	startedAt            time.Time
-	envelopeID           uint64
-	informMux            sync.Mutex
-	metrics              *metrics.Metrics
+	tasks                chan taskFn
+	sessionMux           sync.Mutex
 }
 
 var (
@@ -50,9 +54,12 @@ func New(dm *datamodel.DataModel) *Simulator {
 		udpServer:            newNoopServer(),
 		dm:                   dm,
 		cookies:              jar,
+		metrics:              metrics.NewNoop(),
+		pendingEvents:        make(chan string, 5),
+		pendingRequests:      make(chan func(*rpc.EnvelopeEncoder), 5),
 		informScheduleUpdate: make(chan struct{}, 1),
 		stop:                 make(chan struct{}),
-		metrics:              metrics.NewNoop(),
+		tasks:                make(chan taskFn, 5),
 	}
 }
 
@@ -95,6 +102,12 @@ func (s *Simulator) Start(ctx context.Context) error {
 	s.SetPeriodicInformInterval(Config.InformInterval)
 	go s.periodicInform(ctx)
 
+	if !s.dm.IsBootstrapped() {
+		s.pendingEvents <- rpc.EventBootstrap
+	} else {
+		s.pendingEvents <- rpc.EventBoot
+	}
+
 	return nil
 }
 
@@ -119,7 +132,7 @@ func (s *Simulator) SetPeriodicInformInterval(dur time.Duration) {
 	}
 }
 
-func (s *Simulator) handleConnectionRequest(ctx context.Context, params crParams) error {
+func (s *Simulator) handleConnectionRequest(_ context.Context, params crParams) error {
 	if s.dm.DownUntil().After(time.Now()) {
 		return errServiceUnavailable
 	}
@@ -131,8 +144,10 @@ func (s *Simulator) handleConnectionRequest(ctx context.Context, params crParams
 		return errForbidden
 	}
 
-	s.dm.AddEvent(rpc.EventConnectionRequest)
-	go s.inform(context.WithoutCancel(ctx))
+	select {
+	case s.pendingEvents <- rpc.EventConnectionRequest:
+	default:
+	}
 	return nil
 }
 
@@ -176,6 +191,8 @@ func (s *Simulator) handleEnvelope(env *rpc.EnvelopeDecoder) *rpc.EnvelopeEncode
 		return s.handleGetOptions(envID)
 	case env.Body.Fault != nil:
 		return s.handleFault(envID, env.Body.Fault)
+	case env.Body.TransferCompleteResponse != nil:
+		return nil
 	default:
 		log.Warn().Msg("Unknown method")
 		return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
@@ -219,9 +236,8 @@ func (s *Simulator) handleFault(envID string, r *rpc.FaultPayload) *rpc.Envelope
 func (s *Simulator) pretendOfflineFor(dur time.Duration) {
 	downUntil := time.Now().Add(dur)
 	s.dm.SetDownUntil(downUntil)
-	s.dm.SetPeriodicInformTime(downUntil)
-	s.resetInformTimer()
 	s.startedAt = downUntil
+	time.Sleep(dur)
 }
 
 func (s *Simulator) stopped() bool {

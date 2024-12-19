@@ -12,9 +12,12 @@ func (s *Simulator) handleReboot(envID string, r *rpc.RebootRequest) *rpc.Envelo
 	resp.Body.RebootResponse = &rpc.RebootResponseEncoder{}
 	s.dm.SetCommandKey(r.CommandKey)
 
-	go func() {
-		s.dm.AddEvent(rpc.EventBoot)
+	s.tasks <- func() taskFn {
+		log.Debug().Dur("delay", Config.RebootDelay).Msg("Simulating reboot")
 		s.pretendOfflineFor(Config.RebootDelay)
-	}()
+		log.Debug().Msg("Starting up")
+		s.pendingEvents <- rpc.EventBoot
+		return nil
+	}
 	return resp
 }
