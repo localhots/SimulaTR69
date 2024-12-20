@@ -22,6 +22,7 @@ import (
 
 // Simulator is a TR-069 device simulator.
 type Simulator struct {
+	serverPort uint16
 	server     server
 	dm         *datamodel.DataModel
 	cookies    http.CookieJar
@@ -40,7 +41,7 @@ type Simulator struct {
 var errServiceUnavailable = errors.New("service unavailable")
 
 // New creates a new simulator instance.
-func New(dm *datamodel.DataModel) *Simulator {
+func New(dm *datamodel.DataModel, connectionRequestPort uint16) *Simulator {
 	jar, _ := cookiejar.New(nil)
 	return &Simulator{
 		server:               newNoopServer(),
@@ -52,11 +53,12 @@ func New(dm *datamodel.DataModel) *Simulator {
 		informScheduleUpdate: make(chan struct{}, 1),
 		stop:                 make(chan struct{}),
 		tasks:                make(chan taskFn, 5),
+		serverPort:           connectionRequestPort,
 	}
 }
 
 func NewWithMetrics(dm *datamodel.DataModel, m *metrics.Metrics) *Simulator {
-	s := New(dm)
+	s := New(dm, Config.ConnectionRequestPort)
 	s.metrics = m
 	return s
 }
@@ -64,7 +66,7 @@ func NewWithMetrics(dm *datamodel.DataModel, m *metrics.Metrics) *Simulator {
 // Start starts the simulator and initiates an inform session.
 func (s *Simulator) Start(ctx context.Context) error {
 	if Config.ConnReqEnableHTTP {
-		srv, err := newHTTPServer(s.handleConnectionRequest)
+		srv, err := newHTTPServer(s.handleConnectionRequest, s.serverPort)
 		if err != nil {
 			return fmt.Errorf("start connection request server: %w", err)
 		}

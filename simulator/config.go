@@ -29,7 +29,7 @@ var Config struct {
 
 	// Port defines the port number used by the simulator to accept connection
 	// requests.
-	Port uint16 `env:"API_PORT, default=7547"`
+	ConnectionRequestPort uint16 `env:"API_PORT, default=7547"`
 
 	// SerialNumber will overwrite the DeviceInfo.SerialNumber datamodel
 	// parameter value.
@@ -81,6 +81,9 @@ var Config struct {
 
 	// RequestTimeout defines how long request processing could take.
 	RequestTimeout time.Duration `env:"REQUEST_TIMEOUT, default=5s"`
+
+	// SimNumber defines how many simulators should be started.
+	SimNumber int `env:"SIM_NUMBER, default=1"`
 }
 
 // ErrNoCreds is returned when ACS authentication is configured for digest

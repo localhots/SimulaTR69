@@ -31,7 +31,7 @@ type httpServer struct {
 // crHandlerFn is a function that handles connection requests.
 type crHandlerFn func(context.Context) error
 
-func newHTTPServer(h crHandlerFn) (server, error) {
+func newHTTPServer(h crHandlerFn, configPort uint16) (server, error) {
 	var err error
 	if Config.Host == "" {
 		Config.Host, err = getIP()
@@ -40,7 +40,7 @@ func newHTTPServer(h crHandlerFn) (server, error) {
 		}
 	}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", Config.Host, Config.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", Config.Host, configPort))
 	if err != nil {
 		return nil, fmt.Errorf("create TCP listener: %w", err)
 	}
