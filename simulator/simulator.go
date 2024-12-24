@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/go-xmlfmt/xmlfmt"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog/log"
 
 	"github.com/localhots/SimulaTR69/datamodel"
@@ -118,6 +119,7 @@ func (s *Simulator) handleConnectionRequest(_ context.Context) error {
 
 // nolint:gocyclo
 func (s *Simulator) handleEnvelope(env *rpc.EnvelopeDecoder) *rpc.EnvelopeEncoder {
+	s.metrics.MethodCalls.With(prometheus.Labels{"method": env.Method()}).Inc()
 	envID := env.Header.ID.Value
 	switch {
 	case env.Body.GetRPCMethods != nil:

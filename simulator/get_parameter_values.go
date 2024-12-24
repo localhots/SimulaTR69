@@ -32,6 +32,7 @@ func (s *Simulator) handleGetParameterValues(envID string, r *rpc.GetParameterVa
 		}
 	}
 
+	s.metrics.ParametersRead.Add(float64(len(params)))
 	resp.Body.GetParameterValuesResponse = &rpc.GetParameterValuesResponseEncoder{
 		ParameterList: rpc.ParameterListEncoder{
 			ArrayType:       rpc.ArrayType("cwmp:ParameterValue", len(params)),
