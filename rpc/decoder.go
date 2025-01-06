@@ -242,6 +242,7 @@ func Decode(b []byte) (*EnvelopeDecoder, error) {
 	return &env, nil
 }
 
+// nolint:gocyclo
 func (env EnvelopeDecoder) Method() string {
 	switch {
 	case env.Body.GetRPCMethods != nil:
