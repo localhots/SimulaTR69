@@ -10,7 +10,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/icholy/digest"
@@ -83,20 +82,15 @@ func (s *Simulator) startSession(ctx context.Context, handler sessionHandler) {
 	}
 	defer s.sessionMux.Unlock()
 
+	s.metrics.SessionsAttempted.Inc()
 	u, err := url.Parse(Config.ACSURL)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to parse ACS URL")
 		return
 	}
 
-	connectionStartTime := time.Now()
-	defer func() {
-		s.metrics.ConcurrentInforms.Dec()
-		s.metrics.InformDuration.Observe(float64(time.Since(connectionStartTime).Milliseconds()))
-	}()
-	s.metrics.ConcurrentInforms.Inc()
-
 	log.Info().Str("acs_url", Config.ACSURL).Msg("Connecting to ACS")
+	connectionStartTime := time.Now()
 	client, closeFn, err := newClient(u.Hostname(), tcpPort(u))
 	s.metrics.ConnectionLatency.Observe(float64(time.Since(connectionStartTime).Milliseconds()))
 	if err != nil {
@@ -107,6 +101,7 @@ func (s *Simulator) startSession(ctx context.Context, handler sessionHandler) {
 	}
 	defer func() { _ = closeFn() }()
 
+	s.metrics.SessionsEstablished.Inc()
 	handler(ctx, &client)
 }
 
@@ -114,6 +109,18 @@ func (s *Simulator) startSession(ctx context.Context, handler sessionHandler) {
 func (s *Simulator) informHandler(ctx context.Context, client *http.Client) {
 	log.Info().Msg("Starting inform")
 	informEnv := s.makeInformEnvelope()
+
+	evt := informEnv.Body.Inform.Event.Events[0]
+	startedAt := time.Now()
+	s.metrics.ConcurrentSessions.Inc()
+	s.metrics.InformEvents.With(prometheus.Labels{"event": evt.EventCode}).Inc()
+	defer func() {
+		s.metrics.ConcurrentSessions.Dec()
+		s.metrics.SessionDuration.With(prometheus.Labels{
+			"event": evt.EventCode,
+		}).Observe(float64(time.Since(startedAt).Milliseconds()))
+	}()
+
 	resp, err := s.request(ctx, client, informEnv)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to make request")
@@ -174,9 +181,11 @@ pendingRequests:
 		}
 	}
 
+	s.metrics.SessionsCompleted.Inc()
 	for _, evt := range informEnv.Body.Inform.Event.Events {
 		if evt.EventCode == rpc.EventBootstrap {
 			s.dm.SetBootstrapped(true)
+			s.metrics.Bootstrapped.Inc()
 			break
 		}
 	}
@@ -282,9 +291,7 @@ func (s *Simulator) request(ctx context.Context, client *http.Client, env *rpc.E
 		return nil, fmt.Errorf("execute request: %w", err)
 	}
 	s.cookies.SetCookies(req.URL, resp.Cookies())
-	s.metrics.ResponseStatus.With(prometheus.Labels{
-		"status": strconv.Itoa(resp.StatusCode),
-	}).Inc()
+	s.metrics.ResponseStatus.With(prometheus.Labels{"status": resp.Status}).Inc()
 
 	return resp, nil
 }

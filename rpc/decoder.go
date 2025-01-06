@@ -241,3 +241,49 @@ func Decode(b []byte) (*EnvelopeDecoder, error) {
 	}
 	return &env, nil
 }
+
+// nolint:gocyclo
+func (env EnvelopeDecoder) Method() string {
+	switch {
+	case env.Body.GetRPCMethods != nil:
+		return "GetRPCMethods"
+	case env.Body.SetParameterValues != nil:
+		return "SetParameterValues"
+	case env.Body.GetParameterValues != nil:
+		return "GetParameterValues"
+	case env.Body.GetParameterNames != nil:
+		return "GetParameterNames"
+	case env.Body.SetParameterAttributes != nil:
+		return "SetParameterAttributes"
+	case env.Body.GetParameterAttributes != nil:
+		return "GetParameterAttributes"
+	case env.Body.AddObject != nil:
+		return "AddObject"
+	case env.Body.DeleteObject != nil:
+		return "DeleteObject"
+	case env.Body.Reboot != nil:
+		return "Reboot"
+	case env.Body.Download != nil:
+		return "Download"
+	case env.Body.Upload != nil:
+		return "Upload"
+	case env.Body.FactoryReset != nil:
+		return "FactoryReset"
+	case env.Body.GetQueuedTransfers != nil:
+		return "GetQueuedTransfers"
+	case env.Body.GetAllQueuedTransfers != nil:
+		return "GetAllQueuedTransfers"
+	case env.Body.ScheduleInform != nil:
+		return "ScheduleInform"
+	case env.Body.SetVouchers != nil:
+		return "SetVouchers"
+	case env.Body.GetOptions != nil:
+		return "GetOptions"
+	case env.Body.Fault != nil:
+		return "Fault"
+	case env.Body.TransferCompleteResponse != nil:
+		return "TransferCompleteResponse"
+	default:
+		return "Unknown"
+	}
+}

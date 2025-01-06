@@ -47,6 +47,7 @@ func (s *Simulator) handleSetParameterValues(envID string, r *rpc.SetParameterVa
 		defer s.resetInformTimer()
 	}
 
+	s.metrics.ParametersWritten.Add(float64(len(params)))
 	s.dm.SetValues(params)
 	s.dm.SetParameterKey(r.ParameterKey)
 	resp := rpc.NewEnvelope(envID)
