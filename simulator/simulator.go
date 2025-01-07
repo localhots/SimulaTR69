@@ -30,12 +30,11 @@ type Simulator struct {
 	envelopeID uint64
 	metrics    *metrics.Metrics
 
-	pendingEvents        chan string
-	pendingRequests      chan func(*rpc.EnvelopeEncoder)
-	informScheduleUpdate chan struct{}
-	stop                 chan struct{}
-	tasks                chan taskFn
-	sessionMux           sync.Mutex
+	pendingEvents   chan string
+	pendingRequests chan func(*rpc.EnvelopeEncoder)
+	stop            chan struct{}
+	tasks           chan taskFn
+	sessionMux      sync.Mutex
 }
 
 var errServiceUnavailable = errors.New("service unavailable")
@@ -44,15 +43,14 @@ var errServiceUnavailable = errors.New("service unavailable")
 func New(dm *datamodel.DataModel) *Simulator {
 	jar, _ := cookiejar.New(nil)
 	return &Simulator{
-		server:               newNoopServer(),
-		dm:                   dm,
-		cookies:              jar,
-		metrics:              metrics.NewNoop(),
-		pendingEvents:        make(chan string, 5),
-		pendingRequests:      make(chan func(*rpc.EnvelopeEncoder), 5),
-		informScheduleUpdate: make(chan struct{}, 1),
-		stop:                 make(chan struct{}),
-		tasks:                make(chan taskFn, 5),
+		server:          newNoopServer(),
+		dm:              dm,
+		cookies:         jar,
+		metrics:         metrics.NewNoop(),
+		pendingEvents:   make(chan string, 5),
+		pendingRequests: make(chan func(*rpc.EnvelopeEncoder), 5),
+		stop:            make(chan struct{}),
+		tasks:           make(chan taskFn, 5),
 	}
 }
 

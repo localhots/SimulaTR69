@@ -36,17 +36,6 @@ func (s *Simulator) handleSetParameterValues(envID string, r *rpc.SetParameterVa
 		return resp
 	}
 
-	var resetPeriodicInform bool
-	for _, p := range params {
-		if s.dm.IsPeriodicInformParameter(p.Path) {
-			resetPeriodicInform = true
-			break
-		}
-	}
-	if resetPeriodicInform {
-		defer s.resetInformTimer()
-	}
-
 	s.metrics.ParametersWritten.Add(float64(len(params)))
 	s.dm.SetValues(params)
 	s.dm.SetParameterKey(r.ParameterKey)

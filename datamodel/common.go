@@ -2,7 +2,6 @@ package datamodel
 
 import (
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -118,20 +117,6 @@ func (dm *DataModel) PeriodicInformTime() time.Time {
 // SetPeriodicInformTime sets periodic inform time to the given value.
 func (dm *DataModel) SetPeriodicInformTime(ts time.Time) {
 	dm.SetValue(pathPeriodicInformTime, ts.UTC().Format(time.RFC3339))
-}
-
-// IsPeriodicInformParameter returns true if periodic inform is configured.
-func (dm *DataModel) IsPeriodicInformParameter(name string) bool {
-	if strings.HasSuffix(name, pathPeriodicInformInterval) {
-		return true
-	}
-	if strings.HasSuffix(name, pathPeriodicInformTime) {
-		return true
-	}
-	if strings.HasSuffix(name, pathPeriodicInformEnable) {
-		return true
-	}
-	return false
 }
 
 // SetFirmwareVersion sets the new firmware version value.

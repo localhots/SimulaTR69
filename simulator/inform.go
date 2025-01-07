@@ -43,7 +43,6 @@ func (s *Simulator) periodicInform(ctx context.Context) {
 		case evt := <-s.pendingEvents:
 			s.dm.AddEvent(evt)
 			s.startSession(ctx, s.informHandler)
-		case <-s.informScheduleUpdate:
 		case <-s.stop:
 			return
 		}
@@ -63,10 +62,6 @@ func (s *Simulator) nextInformTime() time.Time {
 		s.dm.PeriodicInformEnabled(),
 		s.dm.PeriodicInformInterval(),
 	)
-}
-
-func (s *Simulator) resetInformTimer() {
-	s.informScheduleUpdate <- struct{}{}
 }
 
 // startSession initiates a new session with the ACS.
