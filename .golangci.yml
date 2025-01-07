@@ -34,6 +34,7 @@ linters:
     - revive
     - stylecheck
     - unconvert
+    - unused
     - usestdlibvars
     - wastedassign
     - whitespace
