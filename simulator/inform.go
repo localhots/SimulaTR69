@@ -273,6 +273,10 @@ func (s *Simulator) request(ctx context.Context, client *http.Client, env *rpc.E
 		s.metrics.RequestFailures.Inc()
 		return nil, fmt.Errorf("execute request: %w", err)
 	}
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("unexpected response status: %s", resp.Status)
+	}
+
 	s.cookies.SetCookies(req.URL, resp.Cookies())
 	s.metrics.ResponseStatus.With(prometheus.Labels{"status": resp.Status}).Inc()
 
