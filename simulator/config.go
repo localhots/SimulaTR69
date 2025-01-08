@@ -79,6 +79,11 @@ var Config struct {
 
 	// RequestTimeout defines how long request processing could take.
 	RequestTimeout time.Duration `env:"REQUEST_TIMEOUT, default=5s"`
+
+	// ArtificialLatency defines the maximum time for a simulator to wait before
+	// sending a request or respoding to an ACS command. It can be used to
+	// simulate slow devices.
+	ArtificialLatency time.Duration `env:"ARTIFICIAL_LATENCY, default=0s"`
 }
 
 // ErrNoCreds is returned when ACS authentication is configured for digest

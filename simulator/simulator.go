@@ -39,9 +39,6 @@ type Simulator struct {
 	tasks           chan taskFn
 	sessionMux      sync.Mutex
 
-	// artificialLatency defines the maximum time for a simulator to wait before
-	// sending a request or respoding to an ACS command. It can be used to
-	// simulate slow devices.
 	artificialLatency time.Duration
 }
 
@@ -51,15 +48,16 @@ var errServiceUnavailable = errors.New("service unavailable")
 func New(dm *datamodel.DataModel) *Simulator {
 	jar, _ := cookiejar.New(nil)
 	return &Simulator{
-		server:          newNoopServer(),
-		dm:              dm,
-		cookies:         jar,
-		metrics:         metrics.NewNoop(),
-		logger:          log.Logger,
-		pendingEvents:   make(chan string, 5),
-		pendingRequests: make(chan func(*rpc.EnvelopeEncoder), 5),
-		stop:            make(chan struct{}),
-		tasks:           make(chan taskFn, 5),
+		server:            newNoopServer(),
+		dm:                dm,
+		cookies:           jar,
+		metrics:           metrics.NewNoop(),
+		logger:            log.Logger,
+		pendingEvents:     make(chan string, 5),
+		pendingRequests:   make(chan func(*rpc.EnvelopeEncoder), 5),
+		stop:              make(chan struct{}),
+		tasks:             make(chan taskFn, 5),
+		artificialLatency: Config.ArtificialLatency,
 	}
 }
 
