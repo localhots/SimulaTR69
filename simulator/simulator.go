@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/cookiejar"
 	"strconv"
@@ -37,6 +38,11 @@ type Simulator struct {
 	stop            chan struct{}
 	tasks           chan taskFn
 	sessionMux      sync.Mutex
+
+	// artificialLatency defines the maximum time for a simulator to wait before
+	// sending a request or respoding to an ACS command. It can be used to
+	// simulate slow devices.
+	artificialLatency time.Duration
 }
 
 var errServiceUnavailable = errors.New("service unavailable")
@@ -65,6 +71,10 @@ func NewWithMetrics(dm *datamodel.DataModel, m *metrics.Metrics) *Simulator {
 
 func (s *Simulator) UseLogger(logger zerolog.Logger) {
 	s.logger = logger
+}
+
+func (s *Simulator) SetArtificialLatency(d time.Duration) {
+	s.artificialLatency = d
 }
 
 // Start starts the simulator and initiates an inform session.
@@ -220,6 +230,15 @@ func (s *Simulator) pretendOfflineFor(dur time.Duration) {
 	s.dm.SetDownUntil(downUntil)
 	s.startedAt = downUntil
 	time.Sleep(dur)
+}
+
+func (s *Simulator) pretendToBeSlow() {
+	if s.artificialLatency > 0 {
+		// nolint:gosec
+		delay := time.Duration(rand.Int63n(int64(s.artificialLatency))).Round(time.Millisecond)
+		s.logger.Debug().Str("delay", delay.String()).Msg("Simulating slow response")
+		time.Sleep(delay)
+	}
 }
 
 func (s *Simulator) stopped() bool {
