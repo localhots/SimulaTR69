@@ -4,6 +4,7 @@ package datamodel
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"strconv"
@@ -21,7 +22,6 @@ type DataModel struct {
 	version       version
 	commandKey    string
 	events        []string
-	notifyParams  []string
 	retryAttempts uint32
 	downUntil     time.Time
 	lock          sync.RWMutex
@@ -31,9 +31,9 @@ type DataModel struct {
 type version string
 
 const (
-	unknownVersion version = ""
-	tr098          version = "TR098"
-	tr181          version = "TR181"
+	unknownVersion version = "Unknown"
+	tr098          version = "TR-098"
+	tr181          version = "TR-181"
 
 	tr098Prefix = "InternetGatewayDevice."
 	tr181Prefix = "Device."
@@ -54,43 +54,51 @@ func (dm *DataModel) Reset() {
 	dm.version = unknownVersion
 	dm.commandKey = ""
 	dm.events = []string{}
-	dm.notifyParams = []string{}
 	dm.retryAttempts = 0
 	dm.downUntil = time.Time{}
 	dm.init()
 }
 
-// GetAll returns one or more parameters prefixed with the given path.
-func (dm *DataModel) GetAll(path string) []Parameter {
-	params := []Parameter{}
-	if strings.HasSuffix(path, ".") {
-		dm.values.forEach(func(p Parameter) (cont bool) {
-			if strings.HasPrefix(p.Path, path) {
-				params = append(params, p)
-			}
-			return true
-		})
-	} else if p, ok := dm.values.get(path); ok {
-		params = append(params, p)
-	} else if !ok {
-		// if a single parameter is not in the batch list, we must return empty to trigger a 9005
-		return nil
-	}
-	if len(params) == 0 {
-		return nil
-	}
-	return params
+func (dm *DataModel) Version() string {
+	return string(dm.version)
 }
 
-// GetValue returns a parameter value with the given path. If it does not exist
-// a placeholder is returned.
-func (dm *DataModel) GetValue(path string) Parameter {
-	path = dm.prefixedPath(path)
-	v, ok := dm.values.get(path)
-	if !ok {
-		v = newParameter(path)
+// GetAll returns one or more parameters prefixed with the given path.
+func (dm *DataModel) GetAll(path string) (params []Parameter, ok bool) {
+	if !strings.HasSuffix(path, ".") {
+		p, ok := dm.values.get(path)
+		return []Parameter{p}, ok
 	}
-	return v
+
+	dm.values.forEach(func(p Parameter) (cont bool) {
+		if strings.HasPrefix(p.Path, path) {
+			params = append(params, p)
+		}
+		return true
+	})
+
+	return params, len(params) > 0
+}
+
+// GetValue returns a parameter value with the given path and a boolean that
+// is equal to true if a parameter exists.
+func (dm *DataModel) GetValue(path string) (p Parameter, ok bool) {
+	return dm.values.get(dm.prefixedPath(path))
+}
+
+// GetValues returns all parameters in the given paths. If at least one
+// requested parameter is missing ok will be set to false.
+func (dm *DataModel) GetValues(paths ...string) (params []Parameter, ok bool) {
+	res := make(map[string]Parameter)
+	for _, path := range paths {
+		p, _ok := dm.GetValue(path)
+		if !_ok {
+			ok = false
+		} else {
+			res[path] = p
+		}
+	}
+	return slices.Collect(maps.Values(res)), ok
 }
 
 // SetValue sets the value of a given parameter.
@@ -163,7 +171,7 @@ func (dm *DataModel) AddObject(name string) (int, error) {
 	}
 
 	reg := regexp.MustCompile(`^` + name + `\.(\d+)`)
-	var max int
+	var maxIndex int
 	dm.values.forEach(func(p Parameter) (cont bool) {
 		m := reg.FindStringSubmatch(p.Path)
 		if len(m) < 2 {
@@ -173,13 +181,13 @@ func (dm *DataModel) AddObject(name string) (int, error) {
 		if err != nil {
 			return true
 		}
-		if i > max {
-			max = i
+		if i > maxIndex {
+			maxIndex = i
 		}
 		return true
 	})
 
-	next := max + 1
+	next := maxIndex + 1
 	newName := fmt.Sprintf("%s.%d", name, next)
 	dm.values.save(Parameter{
 		Path:     newName,
@@ -326,48 +334,11 @@ func (dm *DataModel) SetDownUntil(du time.Time) {
 }
 
 //
-// Parameter change notification
-//
-
-// NotifyParams returns a list of parameters that should be included in the next
-// inform message.
-func (dm *DataModel) NotifyParams() []string {
-	params := make([]string, 0, len(dm.notifyParams))
-	copy(params, dm.notifyParams)
-
-	dm.values.forEach(func(p Parameter) (cont bool) {
-		if p.Notification == rpc.AttributeNotificationPassive && !slices.Contains(params, p.Path) {
-			params = append(params, p.Path)
-		}
-		return true
-	})
-
-	return params
-}
-
-// NotifyParam subscribes the ACS for the given parameter value.
-func (dm *DataModel) NotifyParam(path string) {
-	if !slices.Contains(dm.notifyParams, path) {
-		dm.notifyParams = append(dm.notifyParams, path)
-	}
-}
-
-// ClearNotifyParams clears all previous parameter notifications.
-func (dm *DataModel) ClearNotifyParams() {
-	dm.notifyParams = []string{}
-}
-
-//
 // Helpers
 //
 
 func (dm *DataModel) init() {
 	dm.detectVersion()
-	if !dm.IsBootstrapped() {
-		dm.AddEvent(rpc.EventBootstrap)
-	} else {
-		dm.AddEvent(rpc.EventBoot)
-	}
 }
 
 func (dm *DataModel) detectVersion() {

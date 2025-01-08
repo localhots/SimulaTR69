@@ -2,7 +2,6 @@ package datamodel
 
 import (
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -58,7 +57,8 @@ func (dm *DataModel) SetSerialNumber(val string) {
 
 // ConnectionRequestURL returns the connection request URL.
 func (dm *DataModel) ConnectionRequestURL() Parameter {
-	return dm.GetValue(pathConnectionRequestURL)
+	p, _ := dm.GetValue(pathConnectionRequestURL)
+	return p
 }
 
 // SetConnectionRequestURL sets connection request URL to the given value.
@@ -73,8 +73,11 @@ func (dm *DataModel) SetParameterKey(val string) {
 
 // PeriodicInformEnabled returns true if periodic inform is enabled.
 func (dm *DataModel) PeriodicInformEnabled() bool {
-	val := dm.GetValue(pathPeriodicInformEnable)
-	b, _ := strconv.ParseBool(val.Value)
+	p, ok := dm.GetValue(pathPeriodicInformEnable)
+	if !ok {
+		return false
+	}
+	b, _ := strconv.ParseBool(p.Value)
 	return b
 }
 
@@ -82,9 +85,12 @@ func (dm *DataModel) PeriodicInformEnabled() bool {
 func (dm *DataModel) PeriodicInformInterval() time.Duration {
 	const defaultInterval = 5 * time.Minute
 	const secondsInDay = int64(24 * time.Hour / time.Second)
-	val := dm.GetValue(pathPeriodicInformInterval)
-	i, _ := strconv.ParseInt(val.Value, 10, 32)
-	if i == 0 || i > secondsInDay {
+	p, ok := dm.GetValue(pathPeriodicInformInterval)
+	if !ok {
+		return defaultInterval
+	}
+	i, err := strconv.ParseInt(p.Value, 10, 32)
+	if err != nil || i == 0 || i > secondsInDay {
 		return defaultInterval
 	}
 	return time.Duration(i) * time.Second
@@ -97,28 +103,20 @@ func (dm *DataModel) SetPeriodicInformInterval(sec int64) {
 
 // PeriodicInformTime returns the value of periodic inform time.
 func (dm *DataModel) PeriodicInformTime() time.Time {
-	val := dm.GetValue(pathPeriodicInformTime)
-	i, _ := strconv.ParseInt(val.Value, 10, 32)
-	return time.Unix(i, 0)
+	p, ok := dm.GetValue(pathPeriodicInformTime)
+	if !ok {
+		return time.Time{}
+	}
+	t, err := time.Parse(time.RFC3339, p.Value)
+	if err != nil {
+		return time.Time{}
+	}
+	return t
 }
 
 // SetPeriodicInformTime sets periodic inform time to the given value.
 func (dm *DataModel) SetPeriodicInformTime(ts time.Time) {
-	dm.SetValue(pathPeriodicInformTime, strconv.FormatInt(ts.Unix(), 10))
-}
-
-// IsPeriodicInformParameter returns true if periodic inform is configured.
-func (dm *DataModel) IsPeriodicInformParameter(name string) bool {
-	if strings.HasSuffix(name, pathPeriodicInformInterval) {
-		return true
-	}
-	if strings.HasSuffix(name, pathPeriodicInformTime) {
-		return true
-	}
-	if strings.HasSuffix(name, pathPeriodicInformEnable) {
-		return true
-	}
-	return false
+	dm.SetValue(pathPeriodicInformTime, ts.UTC().Format(time.RFC3339))
 }
 
 // SetFirmwareVersion sets the new firmware version value.

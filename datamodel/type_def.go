@@ -41,17 +41,17 @@ func parseTypeDef(str string) (*typeDef, error) {
 		case name == "name":
 			td.name = val
 		case name == "min" && val != "":
-			min, err := strconv.Atoi(val)
+			minVal, err := strconv.Atoi(val)
 			if err != nil {
 				return nil, fmt.Errorf("parse type min: %w", err)
 			}
-			td.min = &min
+			td.min = &minVal
 		case name == "max" && val != "":
-			max, err := strconv.Atoi(val)
+			maxVal, err := strconv.Atoi(val)
 			if err != nil {
 				return nil, fmt.Errorf("parse type max: %w", err)
 			}
-			td.max = &max
+			td.max = &maxVal
 		}
 	}
 	return td.normalize(), nil

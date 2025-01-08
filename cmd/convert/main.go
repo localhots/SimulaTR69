@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"cmp"
 	"encoding/csv"
 	"encoding/xml"
@@ -102,7 +103,11 @@ func convertGetParameterValuesResponse(b []byte) []datamodel.Parameter {
 			}
 		}
 	}
-	err := xml.Unmarshal(b, &gpv)
+	dec := xml.NewDecoder(bytes.NewReader(b))
+	dec.Entity = map[string]string{
+		"nbsp": " ",
+	}
+	err := dec.Decode(&gpv)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to decode GetParameterValuesResponse")
 	}

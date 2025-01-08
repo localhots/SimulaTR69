@@ -1,4 +1,4 @@
-package server
+package simulator
 
 import (
 	"strings"
@@ -8,7 +8,7 @@ import (
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
-func (s *Server) handleAddObject(envID string, r *rpc.AddObjectRequest) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleAddObject(envID string, r *rpc.AddObjectRequest) *rpc.EnvelopeEncoder {
 	log.Info().Str("method", "AddObject").Msg("Received message")
 	r.Debug()
 	resp := rpc.NewEnvelope(envID)

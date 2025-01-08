@@ -31,18 +31,23 @@ func LoadState(filePath string) (*State, error) {
 	return &s, nil
 }
 
-func LoadDataModel(filePath string) (map[string]Parameter, error) {
+func LoadDataModelFile(filePath string) (map[string]Parameter, error) {
 	fd, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("read datamodel file: %w", err)
 	}
 	defer fd.Close()
-	r := csv.NewReader(fd)
+
+	return LoadDataModel(fd)
+}
+
+func LoadDataModel(r io.Reader) (map[string]Parameter, error) {
+	csvr := csv.NewReader(r)
 
 	values := make(map[string]Parameter)
 	var headerRead bool
 	for {
-		f, err := r.Read()
+		f, err := csvr.Read()
 		// nolint:errorlint
 		if err == io.EOF {
 			break
