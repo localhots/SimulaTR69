@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/sethvargo/go-envconfig"
 )
 
@@ -96,7 +94,6 @@ const (
 
 // LoadConfig attempts to load configuration from environment variables.
 func LoadConfig(ctx context.Context) error {
-	log.Info().Msg("Loading configuration")
 	err := envconfig.Process(ctx, &Config)
 	if err != nil {
 		return fmt.Errorf("load env config: %w", err)
@@ -107,12 +104,6 @@ func LoadConfig(ctx context.Context) error {
 			return fmt.Errorf("auth %s: %w", Config.ACSAuth, ErrNoCreds)
 		}
 	}
-
-	logLevel, err := zerolog.ParseLevel(Config.LogLevel)
-	if err != nil {
-		return fmt.Errorf("parse log level: %w", err)
-	}
-	log.Logger = log.Logger.Level(logLevel)
 
 	return nil
 }

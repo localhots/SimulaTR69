@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 // server is a common interface for connection requests servers.
@@ -26,12 +26,13 @@ type httpServer struct {
 	httpServer *http.Server
 	handler    crHandlerFn
 	port       int
+	logger     zerolog.Logger
 }
 
 // crHandlerFn is a function that handles connection requests.
 type crHandlerFn func(context.Context) error
 
-func newHTTPServer(h crHandlerFn) (server, error) {
+func newHTTPServer(h crHandlerFn, logger zerolog.Logger) (server, error) {
 	var err error
 	if Config.Host == "" {
 		Config.Host, err = getIP()
@@ -58,11 +59,12 @@ func newHTTPServer(h crHandlerFn) (server, error) {
 		},
 		handler: h,
 		port:    port,
+		logger:  logger,
 	}
 	mux.HandleFunc("/cwmp", s.handleConnectionRequest)
 	go func() {
 		if err := s.httpServer.Serve(listener); !errors.Is(err, http.ErrServerClosed) {
-			log.Error().Err(err).Msg("Server error")
+			logger.Error().Err(err).Msg("Server error")
 		}
 	}()
 
@@ -70,7 +72,7 @@ func newHTTPServer(h crHandlerFn) (server, error) {
 }
 
 func (s *httpServer) handleConnectionRequest(w http.ResponseWriter, r *http.Request) {
-	log.Info().Msg("Received HTTP connection request")
+	s.logger.Info().Msg("Received HTTP connection request")
 	err := s.handler(r.Context())
 	if errors.Is(err, errServiceUnavailable) {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)

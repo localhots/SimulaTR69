@@ -14,6 +14,7 @@ import (
 
 	"github.com/go-xmlfmt/xmlfmt"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 
 	"github.com/localhots/SimulaTR69/datamodel"
@@ -29,6 +30,7 @@ type Simulator struct {
 	startedAt  time.Time
 	envelopeID uint64
 	metrics    *metrics.Metrics
+	logger     zerolog.Logger
 
 	pendingEvents   chan string
 	pendingRequests chan func(*rpc.EnvelopeEncoder)
@@ -47,6 +49,7 @@ func New(dm *datamodel.DataModel) *Simulator {
 		dm:              dm,
 		cookies:         jar,
 		metrics:         metrics.NewNoop(),
+		logger:          log.Logger,
 		pendingEvents:   make(chan string, 5),
 		pendingRequests: make(chan func(*rpc.EnvelopeEncoder), 5),
 		stop:            make(chan struct{}),
@@ -60,15 +63,19 @@ func NewWithMetrics(dm *datamodel.DataModel, m *metrics.Metrics) *Simulator {
 	return s
 }
 
+func (s *Simulator) UseLogger(logger zerolog.Logger) {
+	s.logger = logger
+}
+
 // Start starts the simulator and initiates an inform session.
 func (s *Simulator) Start(ctx context.Context) error {
 	if Config.ConnReqEnableHTTP {
-		srv, err := newHTTPServer(s.handleConnectionRequest)
+		srv, err := newHTTPServer(s.handleConnectionRequest, s.logger)
 		if err != nil {
 			return fmt.Errorf("start connection request server: %w", err)
 		}
 		s.server = srv
-		log.Info().Str("server_url", s.server.url()).Msg("Started connection request server")
+		s.logger.Info().Str("server_url", s.server.url()).Msg("Started connection request server")
 	}
 
 	s.startedAt = time.Now()
@@ -123,26 +130,36 @@ func (s *Simulator) handleEnvelope(env *rpc.EnvelopeDecoder) *rpc.EnvelopeEncode
 	case env.Body.GetRPCMethods != nil:
 		return s.handleGetRPCMethods(envID)
 	case env.Body.SetParameterValues != nil:
+		env.Body.SetParameterValues.Debug(s.logger)
 		return s.handleSetParameterValues(envID, env.Body.SetParameterValues)
 	case env.Body.GetParameterValues != nil:
+		env.Body.GetParameterValues.Debug(s.logger)
 		return s.handleGetParameterValues(envID, env.Body.GetParameterValues)
 	case env.Body.GetParameterNames != nil:
+		env.Body.GetParameterNames.Debug(s.logger)
 		return s.handleGetParameterNames(envID, env.Body.GetParameterNames)
 	case env.Body.SetParameterAttributes != nil:
+		env.Body.SetParameterAttributes.Debug(s.logger)
 		return s.handleSetParameterAttributes(envID, env.Body.SetParameterAttributes)
 	case env.Body.GetParameterAttributes != nil:
+		env.Body.GetParameterAttributes.Debug(s.logger)
 		return s.handleGetParameterAttributes(envID, env.Body.GetParameterAttributes)
 	case env.Body.AddObject != nil:
+		env.Body.AddObject.Debug(s.logger)
 		return s.handleAddObject(envID, env.Body.AddObject)
 	case env.Body.DeleteObject != nil:
+		env.Body.DeleteObject.Debug(s.logger)
 		return s.handleDeleteObject(envID, env.Body.DeleteObject)
 	case env.Body.Reboot != nil:
 		return s.handleReboot(envID, env.Body.Reboot)
 	case env.Body.Download != nil:
+		env.Body.Download.Debug(s.logger)
 		return s.handleDownload(envID, env.Body.Download)
 	case env.Body.Upload != nil:
+		env.Body.Upload.Debug(s.logger)
 		return s.handleUpload(envID, env.Body.Upload)
 	case env.Body.FactoryReset != nil:
+		s.logger.Info().Str("method", "FactoryReset").Msg("Received message")
 		return s.handleFactoryReset(envID)
 	case env.Body.GetQueuedTransfers != nil:
 		return s.handleGetQueuedTransfers(envID)
@@ -159,38 +176,38 @@ func (s *Simulator) handleEnvelope(env *rpc.EnvelopeDecoder) *rpc.EnvelopeEncode
 	case env.Body.TransferCompleteResponse != nil:
 		return nil
 	default:
-		log.Warn().Msg("Unknown method")
+		s.logger.Warn().Msg("Unknown method")
 		return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 	}
 }
 
 func (s *Simulator) handleGetQueuedTransfers(envID string) *rpc.EnvelopeEncoder {
-	log.Info().Str("method", "GetQueuedTransfers").Msg("Received message")
+	s.logger.Info().Str("method", "GetQueuedTransfers").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
 func (s *Simulator) handleGetAllQueuedTransfers(envID string) *rpc.EnvelopeEncoder {
-	log.Info().Str("method", "GetAllQueuedTransfers").Msg("Received message")
+	s.logger.Info().Str("method", "GetAllQueuedTransfers").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
 func (s *Simulator) handleScheduleInform(envID string) *rpc.EnvelopeEncoder {
-	log.Info().Str("method", "ScheduleInform").Msg("Received message")
+	s.logger.Info().Str("method", "ScheduleInform").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
 func (s *Simulator) handleSetVouchers(envID string) *rpc.EnvelopeEncoder {
-	log.Info().Str("method", "SetVouchers").Msg("Received message")
+	s.logger.Info().Str("method", "SetVouchers").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
 func (s *Simulator) handleGetOptions(envID string) *rpc.EnvelopeEncoder {
-	log.Info().Str("method", "GetOptions").Msg("Received message")
+	s.logger.Info().Str("method", "GetOptions").Msg("Received message")
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
 func (s *Simulator) handleFault(envID string, r *rpc.FaultPayload) *rpc.EnvelopeEncoder {
-	log.Error().
+	s.logger.Error().
 		Str("env_id", envID).
 		Str("code", r.Detail.Fault.FaultCode.String()).
 		Str("string", r.Detail.Fault.FaultString).

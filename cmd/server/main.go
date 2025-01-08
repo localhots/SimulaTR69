@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"os/signal"
@@ -21,10 +22,18 @@ func main() {
 		Out:        os.Stdout,
 		TimeFormat: time.DateTime,
 	})
+
+	log.Info().Msg("Loading configuration")
 	if err := simulator.LoadConfig(ctx); err != nil {
 		log.Fatal().Err(err).Msg("Failed to load config")
 	}
 	cfg := simulator.Config
+
+	logLevel, err := zerolog.ParseLevel(cfg.LogLevel)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to parse log level")
+	}
+	log.Logger = log.Logger.Level(logLevel)
 
 	log.Info().Str("file", cfg.DataModelPath).Msg("Loading datamodel")
 	defaults, err := datamodel.LoadDataModelFile(cfg.DataModelPath)
@@ -56,9 +65,7 @@ func main() {
 
 	srv := simulator.New(dm)
 	go func() {
-		// FIXME: something's off with error checking here
-		// nolint:errorlint
-		if err := srv.Start(ctx); err != nil && err != http.ErrServerClosed {
+		if err := srv.Start(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatal().Err(err).Msg("Failed to start server")
 		}
 	}()
@@ -66,6 +73,7 @@ func main() {
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 	<-ch
+
 	log.Info().Msg("Stopping server...")
 	if err := srv.Stop(ctx); err != nil {
 		log.Fatal().Err(err).Msg("Failed to stop server")

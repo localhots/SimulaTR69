@@ -1,14 +1,10 @@
 package simulator
 
 import (
-	"github.com/rs/zerolog/log"
-
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
 func (s *Simulator) handleGetParameterNames(envID string, r *rpc.GetParameterNamesRequest) *rpc.EnvelopeEncoder {
-	log.Info().Str("method", "GetParameterNames").Msg("Received message")
-	r.Debug()
 	names := s.dm.ParameterNames(r.ParameterPath, r.NextLevel)
 	if names == nil {
 		resp := rpc.NewEnvelope(envID)
