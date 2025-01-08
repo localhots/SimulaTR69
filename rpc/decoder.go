@@ -5,7 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 
-	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog"
 )
 
 type EnvelopeDecoder struct {
@@ -60,9 +60,10 @@ type SetParameterValuesRequest struct {
 	ParameterKey string
 }
 
-func (r SetParameterValuesRequest) Debug() {
+func (r SetParameterValuesRequest) Debug(logger zerolog.Logger) {
+	logger.Info().Str("method", "SetParameterValues").Msg("Received message")
 	for _, v := range r.ParameterList.ParameterValues {
-		log.Debug().
+		logger.Debug().
 			Str("name", v.Name).
 			Str("type", v.Value.Type).
 			Str("value", v.Value.Value).
@@ -74,9 +75,10 @@ type GetParameterValuesRequest struct {
 	ParameterNames ParameterNames
 }
 
-func (r GetParameterValuesRequest) Debug() {
+func (r GetParameterValuesRequest) Debug(logger zerolog.Logger) {
+	logger.Info().Str("method", "GetParameterValues").Msg("Received message")
 	for _, name := range r.ParameterNames.Names {
-		log.Debug().Str("name", name).Msg("GetParameterValues")
+		logger.Debug().Str("name", name).Msg("GetParameterValues")
 	}
 }
 
@@ -85,8 +87,9 @@ type GetParameterNamesRequest struct {
 	NextLevel     bool
 }
 
-func (r GetParameterNamesRequest) Debug() {
-	log.Debug().
+func (r GetParameterNamesRequest) Debug(logger zerolog.Logger) {
+	logger.Info().Str("method", "GetParameterNames").Msg("Received message")
+	logger.Debug().
 		Str("name", r.ParameterPath).
 		Bool("next_level", r.NextLevel).
 		Msg("GetParameterNames")
@@ -99,9 +102,10 @@ type SetParameterAttributesRequest struct {
 	}
 }
 
-func (r SetParameterAttributesRequest) Debug() {
+func (r SetParameterAttributesRequest) Debug(logger zerolog.Logger) {
+	logger.Info().Str("method", "SetParameterAttributes").Msg("Received message")
 	for _, attr := range r.ParameterList.ParameterAttributes {
-		log.Debug().
+		logger.Debug().
 			Str("name", attr.Name).
 			Int("notification", int(attr.Notification)).
 			Bool("notification_change", attr.NotificationChange).
@@ -115,9 +119,10 @@ type GetParameterAttributesRequest struct {
 	ParameterNames ParameterNames
 }
 
-func (r GetParameterAttributesRequest) Debug() {
+func (r GetParameterAttributesRequest) Debug(logger zerolog.Logger) {
+	logger.Info().Str("method", "GetParameterAttributes").Msg("Received message")
 	for _, path := range r.ParameterNames.Names {
-		log.Debug().Str("name", path).Msg("GetParameterAttributes")
+		logger.Debug().Str("name", path).Msg("GetParameterAttributes")
 	}
 }
 
@@ -126,8 +131,9 @@ type AddObjectRequest struct {
 	ParameterKey string
 }
 
-func (r AddObjectRequest) Debug() {
-	log.Debug().Str("path", r.ObjectName).Msg("AddObjectRequest")
+func (r AddObjectRequest) Debug(logger zerolog.Logger) {
+	logger.Info().Str("method", "AddObject").Msg("Received message")
+	logger.Debug().Str("path", r.ObjectName).Msg("AddObjectRequest")
 }
 
 type DeleteObjectRequest struct {
@@ -135,8 +141,9 @@ type DeleteObjectRequest struct {
 	ParameterKey string
 }
 
-func (r DeleteObjectRequest) Debug() {
-	log.Debug().Str("path", r.ObjectName).Msg("DeleteObjectRequest")
+func (r DeleteObjectRequest) Debug(logger zerolog.Logger) {
+	logger.Info().Str("method", "DeleteObject").Msg("Received message")
+	logger.Debug().Str("path", r.ObjectName).Msg("DeleteObjectRequest")
 }
 
 type RebootRequest struct {
@@ -156,8 +163,9 @@ type DownloadRequest struct {
 	FailureURL     string
 }
 
-func (r DownloadRequest) Debug() {
-	log.Debug().
+func (r DownloadRequest) Debug(logger zerolog.Logger) {
+	logger.Info().Str("method", "Download").Msg("Received message")
+	logger.Debug().
 		Str("file_type", r.FileType).
 		Str("url", r.URL).
 		Int("file_size", r.FileSize).
@@ -168,8 +176,9 @@ type UploadRequest struct {
 	CommandKey string
 }
 
-func (r UploadRequest) Debug() {
-	log.Debug().Str("command_key", r.CommandKey).Msg("UploadRequest")
+func (r UploadRequest) Debug(logger zerolog.Logger) {
+	logger.Info().Str("method", "Upload").Msg("Received message")
+	logger.Debug().Str("command_key", r.CommandKey).Msg("UploadRequest")
 }
 
 type ScheduleInformRequest struct {

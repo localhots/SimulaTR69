@@ -2,12 +2,8 @@ package simulator
 
 import (
 	"github.com/localhots/SimulaTR69/rpc"
-	"github.com/rs/zerolog/log"
 )
 
-func (s *Simulator) handleUpload(envID string, r *rpc.UploadRequest) *rpc.EnvelopeEncoder {
-	log.Info().Str("method", "Upload").Msg("Received message")
-	r.Debug()
-	// s.dm.SetCommandKey(r.CommandKey)
+func (s *Simulator) handleUpload(envID string, _ *rpc.UploadRequest) *rpc.EnvelopeEncoder {
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }

@@ -3,14 +3,10 @@ package simulator
 import (
 	"strings"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
 func (s *Simulator) handleAddObject(envID string, r *rpc.AddObjectRequest) *rpc.EnvelopeEncoder {
-	log.Info().Str("method", "AddObject").Msg("Received message")
-	r.Debug()
 	resp := rpc.NewEnvelope(envID)
 	if !strings.HasSuffix(r.ObjectName, ".") {
 		return resp.WithFaultMsg(rpc.FaultInvalidParameterName, "object name must end with a dot")

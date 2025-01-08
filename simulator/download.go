@@ -8,16 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/rs/zerolog/log"
-
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
 func (s *Simulator) handleDownload(envID string, r *rpc.DownloadRequest) *rpc.EnvelopeEncoder {
-	log.Info().Str("method", "Download").Msg("Received message")
-	r.Debug()
 	resp := rpc.NewEnvelope(envID)
-
 	resp.Body.DownloadResponse = &rpc.DownloadResponseEncoder{
 		Status:       rpc.DownloadNotCompleted,
 		StartTime:    time.Now().Format(time.RFC3339),
@@ -46,9 +41,9 @@ func (s *Simulator) handleDownload(envID string, r *rpc.DownloadRequest) *rpc.En
 		s.pendingEvents <- rpc.EventTransferComplete
 
 		return func() taskFn {
-			log.Debug().Dur("delay", Config.UpgradeDelay).Msg("Simulating firmware upgrade")
+			s.logger.Debug().Dur("delay", Config.UpgradeDelay).Msg("Simulating firmware upgrade")
 			s.pretendOfflineFor(Config.UpgradeDelay)
-			log.Debug().Msg("Starting up")
+			s.logger.Debug().Msg("Starting up")
 			s.pendingEvents <- rpc.EventBoot
 			return nil
 		}
@@ -66,7 +61,7 @@ func (s *Simulator) upgradeFirmware(r *rpc.DownloadRequest) error {
 		req.SetBasicAuth(r.Username, r.Password)
 	}
 
-	log.Debug().Str("url", r.URL).Msg("Downloading file")
+	s.logger.Debug().Str("url", r.URL).Msg("Downloading file")
 	hresp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("make request: %w", err)
@@ -84,7 +79,7 @@ func (s *Simulator) upgradeFirmware(r *rpc.DownloadRequest) error {
 		return nil
 	}
 
-	log.Debug().Msg("Parsing firmware file")
+	s.logger.Debug().Msg("Parsing firmware file")
 	var ver struct {
 		Version string `json:"version"`
 	}
@@ -95,7 +90,7 @@ func (s *Simulator) upgradeFirmware(r *rpc.DownloadRequest) error {
 		return errors.New("incompatible firmware")
 	}
 
-	log.Info().Str("version", ver.Version).Msg("Upgrading firmware")
+	s.logger.Info().Str("version", ver.Version).Msg("Upgrading firmware")
 	s.dm.SetFirmwareVersion(ver.Version)
 	return nil
 }
