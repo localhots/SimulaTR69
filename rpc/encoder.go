@@ -231,8 +231,10 @@ func NewEnvelope(id string) *EnvelopeEncoder {
 }
 
 // nolint:gocyclo
-func (ee EnvelopeEncoder) Method() string {
+func (ee *EnvelopeEncoder) Method() string {
 	switch {
+	case ee == nil:
+		return "Empty"
 	case ee.Body.Inform != nil:
 		return "Inform"
 	case ee.Body.GetRPCMethodsResponse != nil:
