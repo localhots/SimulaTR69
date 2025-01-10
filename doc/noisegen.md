@@ -15,8 +15,6 @@ The `randomWalk` algorithm generates a sequence of values where each value is
 derived from the previous one by adding a small random change. This simulates a
 sensor that produces readings which vary in a random but continuous manner.
 
-![Random Walk](images/random_walk.png)
-
 ```
 randomWalk(startValue=50, minValue=30, maxValue=70, step=5) as xsd:int
 ```
@@ -26,14 +24,14 @@ randomWalk(startValue=50, minValue=30, maxValue=70, step=5) as xsd:int
 - `maxValue`: The maximum value the sequence can take.
 - `step`: The maximum change between consecutive values.
 
+![Random Walk](images/random_walk.png)
+
 ### Piecewise Linear
 
 The `piecewiseLinear` algorithm generates a sequence of values where the trend
 changes direction at regular intervals. This simulates a sensor that produces
 readings which follow a piecewise linear pattern, with occasional random
 fluctuations.
-
-![Piecewise Linear](images/piecewise_linear.png)
 
 ```
 piecewiseLinear(startValue=50, minValue=30, maxValue=70, step=5) as xsd:int
@@ -44,13 +42,13 @@ piecewiseLinear(startValue=50, minValue=30, maxValue=70, step=5) as xsd:int
 - `maxValue`: The maximum value the sequence can take.
 - `step`: The maximum change between consecutive values.
 
+![Piecewise Linear](images/piecewise_linear.png)
+
 ### Sine Wave with Noise
 
 The `sineWithNoise` algorithm generates a sequence of values based on a sine
 wave with added random noise. This simulates a sensor that produces readings
 which follow a sinusoidal pattern with some random fluctuations.
-
-![Sine Wave with Noise](images/sine_wave_with_noise.png)
 
 ```
 sineWithNoise(offset=50, amplitude=20, frequency=0.1, phase=0, noiseScale=5) as xsd:int
@@ -61,13 +59,13 @@ sineWithNoise(offset=50, amplitude=20, frequency=0.1, phase=0, noiseScale=5) as 
 - `frequency`: The number of cycles the sine wave completes in a unit time.
 - `noiseScale`: The level of random noise added to the sine wave.
 
+![Sine Wave with Noise](images/sine_wave_with_noise.png)
+
 ### Perlin Noise
 
 The `perlinNoise` algorithm generates a sequence of values based on Perlin
 noise. This simulates a sensor that produces readings which follow a smooth,
 natural pattern.
-
-![Perlin Noise](images/perlin_noise.png)
 
 ```
 perlinNoise(offset=50, alpha=2, beta=2, seed=42, scale=40) as xsd:int
@@ -81,6 +79,8 @@ perlinNoise(offset=50, alpha=2, beta=2, seed=42, scale=40) as xsd:int
   reproducibility.
 - `scale`: A scaling factor to adjust the amplitude of the noise.
 - `offset`: A constant value to be added to the generated noise values.
+
+![Perlin Noise](images/perlin_noise.png)
 
 ## Experimenting
 
