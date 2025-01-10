@@ -50,7 +50,7 @@ func PiecewiseLinear(startValue, minValue, maxValue, step float64) Generator {
 // readings which follow a sinusoidal pattern with some random fluctuations.
 //
 // Arguments:
-//   - offset: offset: The baseline value of the sine wave. Shifts the entire
+//   - offset: The baseline value of the sine wave. Shifts the entire
 //     wave up or down.
 //   - amplitude: The peak value of the sine wave. Determines the height of the
 //     wave.
@@ -95,12 +95,12 @@ func PerlinNoise(offset, alpha, beta float64, seed int64, scale float64) Generat
 }
 
 // clamp restricts a value to be within the specified range [min, max].
-func clamp(value, min, max float64) float64 {
-	if value < min {
-		return min
+func clamp(value, minValue, maxValue float64) float64 {
+	if value < minValue {
+		return minValue
 	}
-	if value > max {
-		return max
+	if value > maxValue {
+		return maxValue
 	}
 	return value
 }
