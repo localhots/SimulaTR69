@@ -375,7 +375,7 @@ func (dm *DataModel) prefixedPath(path string) string {
 func (dm *DataModel) firstValue(paths ...string) string {
 	for _, path := range paths {
 		if p, ok := dm.values.get(path); ok {
-			return p.Value
+			return p.GetValue()
 		}
 	}
 

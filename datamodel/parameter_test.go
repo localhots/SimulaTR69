@@ -1,6 +1,7 @@
 package datamodel
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -67,48 +68,48 @@ func TestNormalizeParameters(t *testing.T) {
 
 	param := params["Device.DeviceInfo.DeviceCategory"]
 	assert.Equal(t, "xsd:string", param.Type)
-	assert.Equal(t, "", param.Value)
+	assert.Equal(t, "", param.GetValue())
 
 	param = params["Device.DeviceInfo.DeviceImageNumberOfEntries"]
 	assert.Equal(t, "xsd:unsignedInt", param.Type)
-	assert.Equal(t, "0", param.Value)
+	assert.Equal(t, "0", param.GetValue())
 
 	param = params["Device.DeviceInfo.FirstUseDate"]
 	assert.Equal(t, "xsd:dateTime", param.Type)
-	assert.Equal(t, "2023-11-22T04:30:27Z", param.Value)
+	assert.Equal(t, "2023-11-22T04:30:27Z", param.GetValue())
 
 	param = params["Device.DeviceInfo.MemoryStatus"]
 	assert.Equal(t, "Device.DeviceInfo.MemoryStatus", param.Path)
 	assert.Equal(t, "object", param.Type)
-	assert.Equal(t, "", param.Value)
+	assert.Equal(t, "", param.GetValue())
 
 	param = params["Device.DeviceInfo.MemoryStatus.Free"]
 	assert.Equal(t, "xsd:unsignedInt", param.Type)
-	assert.Equal(t, "163636", param.Value)
+	assert.Equal(t, "163636", param.GetValue())
 
 	param = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.Enable"]
 	assert.Equal(t, "xsd:boolean", param.Type)
-	assert.Equal(t, "true", param.Value)
+	assert.Equal(t, "true", param.GetValue())
 
 	param = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.LowAlarmValue"]
 	assert.Equal(t, "xsd:int", param.Type)
-	assert.Equal(t, "-274", param.Value)
+	assert.Equal(t, "-274", param.GetValue())
 
 	param = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.MaxValue"]
 	assert.Equal(t, "xsd:int", param.Type)
-	assert.Equal(t, "-274", param.Value)
+	assert.Equal(t, "-274", param.GetValue())
 
 	param = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.PollingInterval"]
 	assert.Equal(t, "xsd:unsignedInt", param.Type)
-	assert.Equal(t, "0", param.Value)
+	assert.Equal(t, "0", param.GetValue())
 
 	param = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.Reset"]
 	assert.Equal(t, "xsd:boolean", param.Type)
-	assert.Equal(t, "false", param.Value)
+	assert.Equal(t, "false", param.GetValue())
 
 	param = params["Device.DeviceInfo.TemperatureStatus.TemperatureSensor.1.Status"]
 	assert.Equal(t, "xsd:string", param.Type)
-	assert.Equal(t, "Enabled", param.Value)
+	assert.Equal(t, "Enabled", param.GetValue())
 }
 
 func TestNormalizeBool(t *testing.T) {
@@ -194,4 +195,16 @@ func TestNormalizeUint(t *testing.T) {
 		val := normalizeUint("foo", "invalid")
 		assert.Equal(t, "0", val)
 	})
+}
+
+func TestGenerator(t *testing.T) {
+	fd := strings.NewReader(strings.TrimSpace(`
+Parameter,Object,Writable,Value,Type
+Device.DeviceInfo.ProcessStatus.CPUUsage,false,true,"perlinNoise(offset=50, alpha=2, beta=2, seed=42, scale=40) as xsd:int",sim:generator
+`))
+	params, err := LoadDataModel(fd)
+	assert.NoError(t, err)
+	param := params["Device.DeviceInfo.ProcessStatus.CPUUsage"]
+	val := param.GetValue()
+	assert.Equal(t, "50", val)
 }

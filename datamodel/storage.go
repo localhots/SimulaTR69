@@ -72,6 +72,9 @@ func LoadDataModel(r io.Reader) (map[string]Parameter, error) {
 			Type:     f[4],
 			Value:    f[3],
 		}
+		if err := p.initGenerator(); err != nil {
+			return nil, fmt.Errorf("init generator: %w", err)
+		}
 
 		// Add parentPath object automatically if not defined explicitly
 		parentPath := parent(p.Path)

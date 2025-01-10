@@ -77,7 +77,7 @@ func (dm *DataModel) PeriodicInformEnabled() bool {
 	if !ok {
 		return false
 	}
-	b, _ := strconv.ParseBool(p.Value)
+	b, _ := strconv.ParseBool(p.GetValue())
 	return b
 }
 
@@ -89,7 +89,7 @@ func (dm *DataModel) PeriodicInformInterval() time.Duration {
 	if !ok {
 		return defaultInterval
 	}
-	i, err := strconv.ParseInt(p.Value, 10, 32)
+	i, err := strconv.ParseInt(p.GetValue(), 10, 32)
 	if err != nil || i == 0 || i > secondsInDay {
 		return defaultInterval
 	}
@@ -107,7 +107,7 @@ func (dm *DataModel) PeriodicInformTime() time.Time {
 	if !ok {
 		return time.Time{}
 	}
-	t, err := time.Parse(time.RFC3339, p.Value)
+	t, err := time.Parse(time.RFC3339, p.GetValue())
 	if err != nil {
 		return time.Time{}
 	}

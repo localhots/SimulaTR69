@@ -18,6 +18,9 @@ const (
 	TypeIPv6Address  = "IPv6Address"
 	TypeIPv6Prefix   = "IPv6Prefix"
 	TypeMACAddress   = "MACAddress"
+
+	// TypeGenerator is a special type used to define a generator function.
+	TypeGenerator = "sim:generator"
 )
 
 func XSD(typ string) string {
