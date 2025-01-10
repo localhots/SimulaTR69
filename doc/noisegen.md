@@ -99,7 +99,7 @@ To evaluate performance on your hardware, run the benchmarks using the following
 command:
 
 ```
-go test -bench=. ./datamodel/noise/
+go test -bench=. ./datamodel/noise
 ```
 
 ```
