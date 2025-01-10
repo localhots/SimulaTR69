@@ -54,7 +54,7 @@ Datamodel files are provided in CSV format similar to the one used by
 [GenieACS simulator](https://github.com/genieacs/genieacs-sim).
 
 It is possible to fake parameter values using 
-[parameter noise generators](docs/noisegen.md), e.g.:
+[parameter noise generators](doc/noisegen.md), e.g.:
 
 ```csv
 Parameter,Object,Writable,Value,Type
