@@ -58,7 +58,7 @@ It is possible to fake parameter values using
 
 ```csv
 Parameter,Object,Writable,Value,Type
-Device.DeviceInfo.ProcessStatus.CPUUsage,false,true,"perlinNoise(offset=50, alpha=2, beta=2, seed=42, scale=40) as xsd:int",sim:generator
+Device.DeviceInfo.ProcessStatus.CPUUsage,false,true,"perlinNoise(offset=50, alpha=2, beta=2, scale=40) as xsd:int",sim:generator
 ```
 
 ## Parameter Normalization

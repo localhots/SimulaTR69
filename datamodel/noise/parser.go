@@ -99,10 +99,10 @@ func createGenerator(name string, args map[string]float64) (Generator, error) {
 		}
 		return SineWithNoise(args["offset"], args["amplitude"], args["frequency"], args["phase"], args["noiseScale"]), nil
 	case "perlinNoise":
-		if err := requireArgs(args, "offset", "alpha", "beta", "seed", "scale"); err != nil {
+		if err := requireArgs(args, "offset", "alpha", "beta", "scale"); err != nil {
 			return nil, err
 		}
-		return PerlinNoise(args["offset"], args["alpha"], args["beta"], int64(args["seed"]), args["scale"]), nil
+		return PerlinNoise(args["offset"], args["alpha"], args["beta"], args["scale"]), nil
 	default:
 		return nil, errors.New("unknown generator function")
 	}

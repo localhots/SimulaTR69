@@ -16,7 +16,6 @@ const (
 	noiseScale = 0.1
 	alpha      = 2.0
 	beta       = 2.0
-	seed       = int64(42)
 	scale      = 1.0
 )
 
@@ -52,7 +51,7 @@ func TestSineWithNoiseBounds(t *testing.T) {
 }
 
 func TestPerlinNoiseBounds(t *testing.T) {
-	gen := PerlinNoise(offset, alpha, beta, seed, scale)
+	gen := PerlinNoise(offset, alpha, beta, scale)
 	for i := 0; i < 100; i++ {
 		value := gen()
 		// Perlin noise values are typically between -1 and 1, scaled and offset
@@ -84,7 +83,7 @@ func BenchmarkSineWithNoise(b *testing.B) {
 }
 
 func BenchmarkPerlinNoise(b *testing.B) {
-	gen := PerlinNoise(offset, alpha, beta, seed, scale)
+	gen := PerlinNoise(offset, alpha, beta, scale)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		gen()

@@ -200,7 +200,7 @@ func TestNormalizeUint(t *testing.T) {
 func TestGenerator(t *testing.T) {
 	fd := strings.NewReader(strings.TrimSpace(`
 Parameter,Object,Writable,Value,Type
-Device.DeviceInfo.ProcessStatus.CPUUsage,false,true,"perlinNoise(offset=50, alpha=2, beta=2, seed=42, scale=40) as xsd:int",sim:generator
+Device.DeviceInfo.ProcessStatus.CPUUsage,false,true,"perlinNoise(offset=50, alpha=2, beta=2, scale=40) as xsd:int",sim:generator
 `))
 	params, err := LoadDataModel(fd)
 	assert.NoError(t, err)

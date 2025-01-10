@@ -20,7 +20,7 @@ func TestGeneratePreviews(t *testing.T) {
 	page.SetLayout(components.PageFlexLayout)
 	page.AddCharts(
 		renderChart(t, "randomWalk(startValue=50, minValue=30, maxValue=70, step=5) as xsd:int", steps),
-		renderChart(t, "perlinNoise(offset=50, alpha=2, beta=2, seed=42, scale=40) as xsd:int", steps),
+		renderChart(t, "perlinNoise(offset=50, alpha=2, beta=2, scale=40) as xsd:int", steps),
 		renderChart(t, "piecewiseLinear(startValue=50, minValue=30, maxValue=70, step=5) as xsd:int", steps),
 		renderChart(t, "sineWithNoise(offset=50, amplitude=20, frequency=0.1, phase=0, noiseScale=5) as xsd:int", steps),
 	)

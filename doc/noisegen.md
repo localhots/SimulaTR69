@@ -68,15 +68,13 @@ noise. This simulates a sensor that produces readings which follow a smooth,
 natural pattern.
 
 ```
-perlinNoise(offset=50, alpha=2, beta=2, seed=42, scale=40) as xsd:int
+perlinNoise(offset=50, alpha=2, beta=2, scale=40) as xsd:int
 ```
 
 - `alpha`: Controls the smoothness of the Perlin noise. Higher values make the
   noise smoother.
 - `beta`: Controls the frequency of the Perlin noise. Higher values increase the
   frequency.
-- `seed`: A seed value for the random number generator to ensure
-  reproducibility.
 - `scale`: A scaling factor to adjust the amplitude of the noise.
 - `offset`: A constant value to be added to the generated noise values.
 

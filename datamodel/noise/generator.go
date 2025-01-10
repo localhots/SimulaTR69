@@ -3,6 +3,7 @@ package noise
 import (
 	"math"
 	"math/rand/v2"
+	"time"
 
 	"github.com/aquilax/go-perlin"
 )
@@ -80,12 +81,10 @@ func SineWithNoise(offset, amplitude, frequency, phase, noiseScale float64) Gene
 //     the noise smoother.
 //   - beta: Controls the frequency of the Perlin noise. Higher values increase
 //     the frequency.
-//   - seed: A seed value for the random number generator to ensure
-//     reproducibility.
 //   - scale: A scaling factor to adjust the amplitude of the noise.
 //   - offset: A constant value to be added to the generated noise values.
-func PerlinNoise(offset, alpha, beta float64, seed int64, scale float64) Generator {
-	p := perlin.NewPerlin(alpha, beta, 3, seed)
+func PerlinNoise(offset, alpha, beta float64, scale float64) Generator {
+	p := perlin.NewPerlin(alpha, beta, 3, time.Now().UnixNano())
 	i := 0
 	return func() float64 {
 		value := p.Noise1D(float64(i) * 0.1)
