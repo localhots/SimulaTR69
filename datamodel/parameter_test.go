@@ -207,4 +207,5 @@ Device.DeviceInfo.ProcessStatus.CPUUsage,false,true,"perlinNoise(offset=50, alph
 	param := params["Device.DeviceInfo.ProcessStatus.CPUUsage"]
 	val := param.GetValue()
 	assert.Equal(t, "50", val)
+	assert.Equal(t, "xsd:int", param.Type)
 }
