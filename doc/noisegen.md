@@ -89,7 +89,7 @@ parameters for simulating your sensor, modify the `example_test.go` file and
 generate previews using the following command:
 
 ```
-go test -tags=preview ./datamodel/noise
+go test -tags=preview -v ./datamodel/noise -run TestGeneratePreviews
 ```
 
 ## Performance

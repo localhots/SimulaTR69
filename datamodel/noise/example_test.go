@@ -11,6 +11,7 @@ import (
 	"github.com/go-echarts/go-echarts/v2/charts"
 	"github.com/go-echarts/go-echarts/v2/components"
 	"github.com/go-echarts/go-echarts/v2/opts"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGeneratePreviews(t *testing.T) {
@@ -26,13 +27,10 @@ func TestGeneratePreviews(t *testing.T) {
 
 	// Render the page as HTML
 	fd, err := os.Create("examples.html")
-	if err != nil {
-		panic(err)
-	}
+	require.NoError(t, err)
 	defer fd.Close()
-	if err := page.Render(fd); err != nil {
-		panic(err)
-	}
+	err = page.Render(fd)
+	require.NoError(t, err)
 
 	fmt.Println("Charts rendered successfully: examples.html")
 }
@@ -42,13 +40,9 @@ func renderChart(t *testing.T, gendef string, steps int) *charts.Line {
 	t.Helper()
 
 	genfn, err := ParseDef(gendef)
-	if err != nil {
-		t.Fatalf("Failed to parse generator definition: %v", err)
-	}
+	require.NoError(t, err)
 	gen, err := genfn.Generator()
-	if err != nil {
-		t.Fatalf("Failed to create generator: %v", err)
-	}
+	require.NoError(t, err)
 
 	xAxis := make([]int, steps)
 	yAxis := make([]opts.LineData, steps)
