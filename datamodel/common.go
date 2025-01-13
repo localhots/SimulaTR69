@@ -124,6 +124,7 @@ func (dm *DataModel) SetFirmwareVersion(ver string) {
 	dm.SetValue(pathSoftwareVersion, ver)
 }
 
+// SetUptime sets the device uptime to the given duration.
 func (dm *DataModel) SetUptime(dur time.Duration) {
 	dm.SetValue(pathUptime, strconv.Itoa(int(dur/time.Second)))
 }

@@ -1,5 +1,6 @@
 package rpc
 
+// List of supported types.
 const (
 	TypeObject       = "object"
 	TypeBase64       = "base64"
@@ -23,6 +24,7 @@ const (
 	TypeGenerator = "sim:generator"
 )
 
+// XSD returns the XML Schema Definition (XSD) type for the given type.
 func XSD(typ string) string {
 	return "xsd:" + typ
 }

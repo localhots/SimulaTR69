@@ -1,3 +1,11 @@
+// Package metrics provides a set of Prometheus metrics for monitoring the
+// performance and behavior of a TR-069 simulator. This package includes
+// counters, histograms, and gauges to track various aspects such as session
+// attempts, connection latency, method calls, and parameter interactions.
+// The metrics collected here are relevant for understanding the operational
+// characteristics and performance of the TR-069 simulator. Additionally, this
+// package includes a no-op implementation for cases where metrics collection
+// is not required or needs to be disabled.
 package metrics
 
 import (
@@ -6,6 +14,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 )
 
+// Metrics holds Prometheus metrics for monitoring the TR-069 simulator's
+// performance and behavior. It includes counters, histograms, and gauges
+// to track session attempts, connection latency, method calls, and more.
 type Metrics struct {
 	Bootstrapped        prometheus.Counter
 	ConnectionLatency   prometheus.Histogram
@@ -38,6 +49,8 @@ type prometheus_HistogramVec interface {
 	With(prometheus.Labels) prometheus.Observer
 }
 
+// New creates and registers a new Metrics instance with the provided
+// Prometheus registerer.
 func New(reg prometheus.Registerer) *Metrics {
 	m := &Metrics{
 		Bootstrapped: prometheus.NewCounter(prometheus.CounterOpts{

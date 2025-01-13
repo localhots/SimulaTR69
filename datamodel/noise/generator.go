@@ -1,3 +1,6 @@
+// Package noise provides algorithms to generate sequences of values that
+// simulate sensor readings with various patterns, including random walk,
+// piecewise linear, sine wave with noise, and Perlin noise.
 package noise
 
 import (

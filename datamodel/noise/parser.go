@@ -7,12 +7,14 @@ import (
 	"strconv"
 )
 
+// Func represents a noise generator function with its name, arguments, and type.
 type Func struct {
 	Name string
 	Args map[string]float64
 	Type string
 }
 
+// Generator is a function type that generates a float64 value.
 type Generator func() float64
 
 var (
@@ -55,6 +57,7 @@ func ParseDef(str string) (*Func, error) {
 	}, nil
 }
 
+// FullName returns the full descriptive name of the noise generator function.
 func (fn *Func) FullName() string {
 	switch fn.Name {
 	case "randomWalk":
@@ -70,6 +73,8 @@ func (fn *Func) FullName() string {
 	}
 }
 
+// Generator creates a generator function based on the parsed function
+// definition.
 func (fn *Func) Generator() (Generator, error) {
 	if fn.Name == "" {
 		return nil, errors.New("function name is empty")
