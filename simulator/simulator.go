@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"net/http/cookiejar"
 	"strconv"
@@ -37,6 +38,8 @@ type Simulator struct {
 	stop            chan struct{}
 	tasks           chan taskFn
 	sessionMux      sync.Mutex
+
+	artificialLatency time.Duration
 }
 
 var errServiceUnavailable = errors.New("service unavailable")
@@ -45,15 +48,16 @@ var errServiceUnavailable = errors.New("service unavailable")
 func New(dm *datamodel.DataModel) *Simulator {
 	jar, _ := cookiejar.New(nil)
 	return &Simulator{
-		server:          newNoopServer(),
-		dm:              dm,
-		cookies:         jar,
-		metrics:         metrics.NewNoop(),
-		logger:          log.Logger,
-		pendingEvents:   make(chan string, 5),
-		pendingRequests: make(chan func(*rpc.EnvelopeEncoder), 5),
-		stop:            make(chan struct{}),
-		tasks:           make(chan taskFn, 5),
+		server:            newNoopServer(),
+		dm:                dm,
+		cookies:           jar,
+		metrics:           metrics.NewNoop(),
+		logger:            log.Logger,
+		pendingEvents:     make(chan string, 5),
+		pendingRequests:   make(chan func(*rpc.EnvelopeEncoder), 5),
+		stop:              make(chan struct{}),
+		tasks:             make(chan taskFn, 5),
+		artificialLatency: Config.ArtificialLatency,
 	}
 }
 
@@ -68,6 +72,10 @@ func NewWithMetrics(dm *datamodel.DataModel, m *metrics.Metrics) *Simulator {
 // UseLogger sets the logger for the simulator.
 func (s *Simulator) UseLogger(logger zerolog.Logger) {
 	s.logger = logger
+}
+
+func (s *Simulator) SetArtificialLatency(d time.Duration) {
+	s.artificialLatency = d
 }
 
 // Start starts the simulator and initiates an inform session.
@@ -225,6 +233,15 @@ func (s *Simulator) pretendOfflineFor(dur time.Duration) {
 	s.dm.SetDownUntil(downUntil)
 	s.startedAt = downUntil
 	time.Sleep(dur)
+}
+
+func (s *Simulator) pretendToBeSlow() {
+	if s.artificialLatency > 0 {
+		// nolint:gosec
+		delay := time.Duration(rand.Int63n(int64(s.artificialLatency))).Round(time.Millisecond)
+		s.logger.Debug().Str("delay", delay.String()).Msg("Simulating slow response")
+		time.Sleep(delay)
+	}
 }
 
 func (s *Simulator) stopped() bool {

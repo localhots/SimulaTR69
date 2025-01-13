@@ -115,23 +115,10 @@ func (s *Simulator) informHandler(ctx context.Context, client *http.Client) {
 		}).Observe(float64(time.Since(startedAt).Milliseconds()))
 	}()
 
-	resp, err := s.request(ctx, client, informEnv)
+	_, err := s.send(ctx, client, informEnv)
 	if err != nil {
-		s.logger.Error().Err(err).Msg("Failed to make request")
-		s.dm.IncrRetryAttempts()
-		return
-	}
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		s.logger.Error().Err(err).Msg("Failed to read response")
+		s.logger.Error().Err(err).Msg("Failed to send inform request")
 		s.metrics.RequestFailures.Inc()
-		s.dm.IncrRetryAttempts()
-		return
-	}
-	logPrettyXML(s.logger, "Response from ACS", b)
-	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		s.logger.Error().Int("status", resp.StatusCode).Msg("Unexpected response status")
 		s.dm.IncrRetryAttempts()
 		return
 	}
@@ -186,7 +173,9 @@ pendingRequests:
 }
 
 func (s *Simulator) send(ctx context.Context, client *http.Client, env *rpc.EnvelopeEncoder) (*rpc.EnvelopeDecoder, error) {
-	s.logger.Debug().Msg("Sending post-inform request")
+	s.pretendToBeSlow()
+
+	s.logger.Debug().Str("method", env.Method()).Msg("Sending request to ACS")
 	resp, err := s.request(ctx, client, env)
 	if err != nil {
 		return nil, fmt.Errorf("make request: %w", err)
@@ -284,6 +273,10 @@ func (s *Simulator) request(ctx context.Context, client *http.Client, env *rpc.E
 		s.metrics.RequestFailures.Inc()
 		return nil, fmt.Errorf("execute request: %w", err)
 	}
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("unexpected response status: %s", resp.Status)
+	}
+
 	s.cookies.SetCookies(req.URL, resp.Cookies())
 	s.metrics.ResponseStatus.With(prometheus.Labels{"status": resp.Status}).Inc()
 
