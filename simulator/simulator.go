@@ -74,6 +74,10 @@ func (s *Simulator) UseLogger(logger zerolog.Logger) {
 	s.logger = logger
 }
 
+// SetArtificialLatency sets the artificial latency for the simulator.
+// This function allows you to introduce a delay in the simulator's operations,
+// which can be useful for testing and simulating network conditions with
+// latency.
 func (s *Simulator) SetArtificialLatency(d time.Duration) {
 	s.artificialLatency = d
 }
