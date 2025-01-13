@@ -1,4 +1,3 @@
-// Package datamodel supports CPE datamodel and state.
 package datamodel
 
 import (
@@ -43,12 +42,14 @@ const (
 // Accessors
 //
 
+// New creates a new DataModel instance with the given state.
 func New(state *State) *DataModel {
 	dm := &DataModel{values: state}
 	dm.init()
 	return dm
 }
 
+// Reset clears the DataModel to its initial state.
 func (dm *DataModel) Reset() {
 	dm.values.reset()
 	dm.version = unknownVersion
@@ -59,6 +60,7 @@ func (dm *DataModel) Reset() {
 	dm.init()
 }
 
+// Version returns the current version of the DataModel.
 func (dm *DataModel) Version() string {
 	return string(dm.version)
 }
@@ -375,7 +377,7 @@ func (dm *DataModel) prefixedPath(path string) string {
 func (dm *DataModel) firstValue(paths ...string) string {
 	for _, path := range paths {
 		if p, ok := dm.values.get(path); ok {
-			return p.Value
+			return p.GetValue()
 		}
 	}
 

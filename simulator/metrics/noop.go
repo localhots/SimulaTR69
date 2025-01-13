@@ -24,6 +24,9 @@ type (
 	noopObserver     struct{}
 )
 
+// NewNoop creates a new Metrics instance with no-op implementations of
+// Prometheus metrics. This is useful for testing or disabling metrics
+// collection.
 func NewNoop() *Metrics {
 	return &Metrics{
 		Bootstrapped:        noopCounter{},

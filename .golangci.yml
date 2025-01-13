@@ -41,3 +41,9 @@ linters:
 linters-settings:
   gocyclo:
     min-complexity: 12
+issues:
+  include:
+    # don't suppress missing exported method/function parameters
+    - EXC0012
+    # don't suppress missing package level comment
+    - EXC0015

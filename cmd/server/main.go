@@ -1,3 +1,5 @@
+// Package main initializes and runs the TR-069 device simulator, handling
+// configuration loading, datamodel setup, and server lifecycle management.
 package main
 
 import (

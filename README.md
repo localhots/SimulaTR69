@@ -48,6 +48,19 @@ volumes:
 All required methods are supported and should behave realistically, except
 Upload currently don't do anything. There are quirks though.
 
+## Datamodel Format
+
+Datamodel files are provided in CSV format similar to the one used by
+[GenieACS simulator](https://github.com/genieacs/genieacs-sim).
+
+It is possible to fake parameter values using
+[parameter noise generators](doc/noisegen.md), e.g.:
+
+```csv
+Parameter,Object,Writable,Value,Type
+Device.DeviceInfo.ProcessStatus.CPUUsage,false,true,"perlinNoise(offset=50, alpha=2, beta=2, scale=40) as xsd:int",sim:generator
+```
+
 ## Parameter Normalization
 
 `NORMALIZE_PARAMETERS` when set to `true` will make the simulator attempt to

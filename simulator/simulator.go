@@ -57,12 +57,15 @@ func New(dm *datamodel.DataModel) *Simulator {
 	}
 }
 
+// NewWithMetrics creates a new simulator instance with a custom metrics
+// collector.
 func NewWithMetrics(dm *datamodel.DataModel, m *metrics.Metrics) *Simulator {
 	s := New(dm)
 	s.metrics = m
 	return s
 }
 
+// UseLogger sets the logger for the simulator.
 func (s *Simulator) UseLogger(logger zerolog.Logger) {
 	s.logger = logger
 }
@@ -104,6 +107,8 @@ func (s *Simulator) Stop(ctx context.Context) error {
 	return nil
 }
 
+// SetPeriodicInformInterval sets the periodic inform interval for the
+// simulator. If the provided duration is zero the interval will not be changed.
 func (s *Simulator) SetPeriodicInformInterval(dur time.Duration) {
 	if dur > 0 {
 		s.dm.SetPeriodicInformInterval(int64(dur.Seconds()))

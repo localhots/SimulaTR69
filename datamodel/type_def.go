@@ -72,7 +72,8 @@ func (td *typeDef) normalize() *typeDef {
 		rpc.TypeIPv4Address,
 		rpc.TypeIPv6Address,
 		rpc.TypeIPv6Prefix,
-		rpc.TypeMACAddress:
+		rpc.TypeMACAddress,
+		rpc.TypeGenerator:
 		// Supported type, nothing to normalize
 	case "long":
 		td.name = rpc.TypeUnsignedLong

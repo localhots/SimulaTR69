@@ -18,13 +18,7 @@ func (s *Simulator) handleGetParameterValues(envID string, r *rpc.GetParameterVa
 			if p.Object {
 				continue
 			}
-			params = append(params, rpc.ParameterValueEncoder{
-				Name: p.Path,
-				Value: rpc.ValueEncoder{
-					Type:  p.Type,
-					Value: p.Value,
-				},
-			})
+			params = append(params, p.Encode())
 		}
 	}
 
