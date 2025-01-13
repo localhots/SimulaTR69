@@ -50,10 +50,10 @@ Upload currently don't do anything. There are quirks though.
 
 ## Datamodel Format
 
-Datamodel files are provided in CSV format similar to the one used by 
+Datamodel files are provided in CSV format similar to the one used by
 [GenieACS simulator](https://github.com/genieacs/genieacs-sim).
 
-It is possible to fake parameter values using 
+It is possible to fake parameter values using
 [parameter noise generators](doc/noisegen.md), e.g.:
 
 ```csv
