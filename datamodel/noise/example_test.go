@@ -23,6 +23,7 @@ func TestGeneratePreviews(t *testing.T) {
 		renderChart(t, "perlinNoise(offset=50, alpha=2, beta=2, scale=40) as xsd:int", steps),
 		renderChart(t, "piecewiseLinear(startValue=50, minValue=30, maxValue=70, step=5) as xsd:int", steps),
 		renderChart(t, "sineWithNoise(offset=50, amplitude=20, frequency=0.1, phase=0, noiseScale=5) as xsd:int", steps),
+		renderChart(t, "trendWithNoise(startValue=0, step=1.0, noiseScale=25) as xsd:int", steps),
 	)
 
 	// Render the page as HTML

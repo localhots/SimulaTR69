@@ -17,6 +17,14 @@ type Func struct {
 // Generator is a function type that generates a float64 value.
 type Generator func() float64
 
+const (
+	randomWalk      = "randomWalk"
+	piecewiseLinear = "piecewiseLinear"
+	sineWithNoise   = "sineWithNoise"
+	perlinNoise     = "perlinNoise"
+	trendWithNoise  = "trendWithNoise"
+)
+
 var (
 	genReg  = regexp.MustCompile(`(?P<func_name>\w+)\((?P<args>(?:\w+=[0-9\.]+,?\s*)*)\)\s+as\s+(?P<type_name>[\w:]+)`)
 	argsReg = regexp.MustCompile(`(\w+)=([0-9\.]+)`)
@@ -60,14 +68,16 @@ func ParseDef(str string) (*Func, error) {
 // FullName returns the full descriptive name of the noise generator function.
 func (fn *Func) FullName() string {
 	switch fn.Name {
-	case "randomWalk":
+	case randomWalk:
 		return "Random Walk"
-	case "piecewiseLinear":
+	case piecewiseLinear:
 		return "Piecewise Linear"
-	case "sineWithNoise":
+	case sineWithNoise:
 		return "Sine Wave with Noise"
-	case "perlinNoise":
+	case perlinNoise:
 		return "Perlin Noise"
+	case trendWithNoise:
+		return "Trend With Noise"
 	default:
 		return "Unknown"
 	}
@@ -88,26 +98,31 @@ func (fn *Func) Generator() (Generator, error) {
 
 func createGenerator(name string, args map[string]float64) (Generator, error) {
 	switch name {
-	case "randomWalk":
+	case randomWalk:
 		if err := requireArgs(args, "startValue", "minValue", "maxValue", "step"); err != nil {
 			return nil, err
 		}
 		return RandomWalk(args["startValue"], args["minValue"], args["maxValue"], args["step"]), nil
-	case "piecewiseLinear":
+	case piecewiseLinear:
 		if err := requireArgs(args, "startValue", "minValue", "maxValue", "step"); err != nil {
 			return nil, err
 		}
 		return PiecewiseLinear(args["startValue"], args["minValue"], args["maxValue"], args["step"]), nil
-	case "sineWithNoise":
+	case sineWithNoise:
 		if err := requireArgs(args, "offset", "amplitude", "frequency", "phase", "noiseScale"); err != nil {
 			return nil, err
 		}
 		return SineWithNoise(args["offset"], args["amplitude"], args["frequency"], args["phase"], args["noiseScale"]), nil
-	case "perlinNoise":
+	case perlinNoise:
 		if err := requireArgs(args, "offset", "alpha", "beta", "scale"); err != nil {
 			return nil, err
 		}
 		return PerlinNoise(args["offset"], args["alpha"], args["beta"], args["scale"]), nil
+	case trendWithNoise:
+		if err := requireArgs(args, "startValue", "step", "noiseScale"); err != nil {
+			return nil, err
+		}
+		return TrendWithNoise(args["startValue"], args["step"], args["noiseScale"]), nil
 	default:
 		return nil, errors.New("unknown generator function")
 	}

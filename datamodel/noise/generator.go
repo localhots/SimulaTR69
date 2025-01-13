@@ -96,6 +96,30 @@ func PerlinNoise(offset, alpha, beta float64, scale float64) Generator {
 	}
 }
 
+// TrendWithNoise algorithm generates a sequence of values that follow a
+// linear trend with added random noise. This method simulates a sensor that
+// produces readings which increase or decrease steadily with some random
+// fluctuations.
+//
+// Arguments:
+//   - startValue: The initial value of the sequence.
+//   - step: The amount by which the value increases or decreases at each step.
+//   - noiseScale: The amplitude of the random noise added to the trend.
+//     Determines the intensity of the noise.
+func TrendWithNoise(startValue, step, noiseScale float64) func() float64 {
+	value := startValue
+	return func() float64 {
+		value += step
+		// nolint:gosec
+		// It's okay to use the default random number generator here.
+		noise := (rand.Float64()*2 - 1) * noiseScale
+		if step < 0 {
+			return min(value, value+noise)
+		}
+		return max(value, value+noise)
+	}
+}
+
 // clamp restricts a value to be within the specified range [min, max].
 func clamp(value, minValue, maxValue float64) float64 {
 	if value < minValue {

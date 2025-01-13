@@ -61,6 +61,17 @@ func TestPerlinNoiseBounds(t *testing.T) {
 	}
 }
 
+func TestTrendWithNoiseBounds(t *testing.T) {
+	gen := TrendWithNoise(startValue, step, noiseScale)
+	for i := 0; i < 100; i++ {
+		value := gen()
+		// Since the trend can go indefinitely, we only check that the noise does not exceed the noiseScale
+		if step >= 0 && value < startValue || step < 0 && value > startValue {
+			t.Errorf("Value out of bounds: got %v, want at least %v", value, startValue)
+		}
+	}
+}
+
 func BenchmarkRandomWalk(b *testing.B) {
 	gen := RandomWalk(startValue, minValue, maxValue, step)
 	for i := 0; i < b.N; i++ {
@@ -85,6 +96,13 @@ func BenchmarkSineWithNoise(b *testing.B) {
 func BenchmarkPerlinNoise(b *testing.B) {
 	gen := PerlinNoise(offset, alpha, beta, scale)
 	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		gen()
+	}
+}
+
+func BenchmarkTrendWithNoise(b *testing.B) {
+	gen := TrendWithNoise(startValue, step, noiseScale)
 	for i := 0; i < b.N; i++ {
 		gen()
 	}

@@ -80,6 +80,24 @@ perlinNoise(offset=50, alpha=2, beta=2, scale=40) as xsd:int
 
 ![Perlin Noise](images/perlin_noise.png)
 
+### Trend with Noise
+
+The `trendWithNoise` algorithm generates a sequence of values that follow a
+linear trend with added random noise. This method simulates a sensor that
+produces readings which increase or decrease steadily with some random
+fluctuations.
+
+```
+trendWithNoise(startValue=0, step=1.0, noiseScale=25) as xsd:int
+```
+
+- `startValue`: The initial value of the sequence.
+- `step`: The amount by which the value increases or decreases at each step.
+- `noiseScale`: The amplitude of the random noise added to the trend.
+  Determines the intensity of the noise.
+
+![Trend with Noise](images/trend_with_noise.png)
+
 ## Experimenting
 
 To experiment with the noise generator output and find the best algorithm and
@@ -105,8 +123,9 @@ goos: darwin
 goarch: arm64
 pkg: github.com/localhots/SimulaTR69/datamodel/noise
 cpu: Apple M3 Pro
-BenchmarkRandomWalk-11         	193095481	         6.242 ns/op
-BenchmarkPiecewiseLinear-11    	165025899	         7.235 ns/op
-BenchmarkSineWithNoise-11      	100000000	        10.87 ns/op
-BenchmarkPerlinNoise-11        	129291402	         9.257 ns/op
+BenchmarkRandomWalk-11          189088714                6.164 ns/op
+BenchmarkPiecewiseLinear-11     166407223                7.205 ns/op
+BenchmarkSineWithNoise-11       100000000               10.98 ns/op
+BenchmarkPerlinNoise-11         127824692                9.442 ns/op
+BenchmarkTrendWithNoise-11      221975839                5.372 ns/op
 ```
