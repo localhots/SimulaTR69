@@ -52,7 +52,7 @@ func TestStateGet(t *testing.T) {
 	assert.Equal(t, "1.0", p.Value)
 
 	state.delete("Device.DeviceInfo.Description")
-	p, ok = state.get("Device.DeviceInfo.Description")
+	_, ok = state.get("Device.DeviceInfo.Description")
 	assert.False(t, ok)
 }
 
