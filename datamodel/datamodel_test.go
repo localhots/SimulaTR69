@@ -60,7 +60,7 @@ func TestGetAll(t *testing.T) {
 			Value: "Residential Gateway",
 		},
 		"Device.DeviceInfo.HardwareVersion": {
-			Path:  "Device.DeviceInfo.Description",
+			Path:  "Device.DeviceInfo.HardwareVersion",
 			Value: "1.0",
 		},
 		"Device.Ethernet.Interface.1.DuplexMode": {
@@ -94,7 +94,7 @@ func TestGetValues(t *testing.T) {
 			Value: "Residential Gateway",
 		},
 		"Device.DeviceInfo.HardwareVersion": {
-			Path:  "Device.DeviceInfo.Description",
+			Path:  "Device.DeviceInfo.HardwareVersion",
 			Value: "1.0",
 		},
 		"Device.Ethernet.Interface.1.DuplexMode": {
@@ -153,12 +153,13 @@ func TestSetValues(t *testing.T) {
 			Value: "2.0",
 		},
 	})
-	param1, ok1 := dm.GetValue("Device.DeviceInfo.Description")
-	param2, ok2 := dm.GetValue("Device.DeviceInfo.HardwareVersion")
-	assert.True(t, ok1)
-	assert.True(t, ok2)
-	assert.Equal(t, "New Description", param1.Value)
-	assert.Equal(t, "2.0", param2.Value)
+	param, ok := dm.GetValue("Device.DeviceInfo.Description")
+	assert.True(t, ok)
+	assert.Equal(t, "New Description", param.Value)
+
+	param, ok = dm.GetValue("Device.DeviceInfo.HardwareVersion")
+	assert.True(t, ok)
+	assert.Equal(t, "2.0", param.Value)
 }
 
 func TestCanSetValueNonWritable(t *testing.T) {
@@ -179,6 +180,29 @@ func TestCanSetValueInvalidParent(t *testing.T) {
 	fault := dm.CanSetValue(param)
 	require.NotNil(t, fault)
 	assert.Equal(t, rpc.FaultInvalidParameterName, *fault)
+}
+
+func TestSetParameterAttribute(t *testing.T) {
+	state := newState()
+	dm := New(state.WithDefaults(map[string]Parameter{
+		"Device.DeviceInfo.Description": {
+			Path:  "Device.DeviceInfo.Description",
+			Value: "Residential Gateway",
+		},
+	}))
+	dm.SetParameterAttribute("Device.DeviceInfo.Description", 1, true, []string{"read"}, true)
+	param, ok := dm.GetValue("Device.DeviceInfo.Description")
+	assert.True(t, ok)
+	assert.Equal(t, rpc.AttributeNotification(1), param.Notification)
+	assert.Equal(t, []string{"read"}, param.ACL)
+}
+
+func TestSetParameterAttributeNonExistent(t *testing.T) {
+	dm := New(newState())
+	dm.SetParameterAttribute("Device.NonExistent.Path", 1, true, []string{"read"}, true)
+	param, ok := dm.GetValue("Device.NonExistent.Path")
+	assert.False(t, ok)
+	assert.Empty(t, param)
 }
 
 func TestAddObject(t *testing.T) {
@@ -219,7 +243,7 @@ func TestDeleteObjectNonExistent(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestSetParameterAttribute(t *testing.T) {
+func TestParameterNamesEmptyPath(t *testing.T) {
 	state := newState()
 	dm := New(state.WithDefaults(map[string]Parameter{
 		"Device.DeviceInfo.Description": {
@@ -227,19 +251,36 @@ func TestSetParameterAttribute(t *testing.T) {
 			Value: "Residential Gateway",
 		},
 	}))
-	dm.SetParameterAttribute("Device.DeviceInfo.Description", 1, true, []string{"read"}, true)
-	param, ok := dm.GetValue("Device.DeviceInfo.Description")
-	assert.True(t, ok)
-	assert.Equal(t, rpc.AttributeNotification(1), param.Notification)
-	assert.Equal(t, []string{"read"}, param.ACL)
+	params := dm.ParameterNames("", true)
+	assert.Len(t, params, 0)
 }
 
-func TestSetParameterAttributeNonExistent(t *testing.T) {
-	dm := New(newState())
-	dm.SetParameterAttribute("Device.NonExistent.Path", 1, true, []string{"read"}, true)
-	param, ok := dm.GetValue("Device.NonExistent.Path")
-	assert.False(t, ok)
-	assert.Empty(t, param)
+func TestParameterNamesNoMatch(t *testing.T) {
+	state := newState()
+	dm := New(state.WithDefaults(map[string]Parameter{
+		"Device.DeviceInfo.Description": {
+			Path:  "Device.DeviceInfo.Description",
+			Value: "Residential Gateway",
+		},
+	}))
+	params := dm.ParameterNames("Device.Ethernet", true)
+	assert.Len(t, params, 0)
+}
+
+func TestParameterNamesNextLevel(t *testing.T) {
+	state := newState()
+	dm := New(state.WithDefaults(map[string]Parameter{
+		"Device.DeviceInfo.Description": {
+			Path:  "Device.DeviceInfo.Description",
+			Value: "Residential Gateway",
+		},
+		"Device.DeviceInfo.HardwareVersion": {
+			Path:  "Device.DeviceInfo.HardwareVersion",
+			Value: "1.0",
+		},
+	}))
+	params := dm.ParameterNames("Device.DeviceInfo", true)
+	assert.Len(t, params, 2)
 }
 
 func TestPendingEvents(t *testing.T) {
@@ -302,44 +343,4 @@ func TestSetDownUntil(t *testing.T) {
 	future := time.Now().Add(time.Hour)
 	dm.SetDownUntil(future)
 	assert.Equal(t, future, dm.DownUntil())
-}
-
-func TestParameterNamesEmptyPath(t *testing.T) {
-	state := newState()
-	dm := New(state.WithDefaults(map[string]Parameter{
-		"Device.DeviceInfo.Description": {
-			Path:  "Device.DeviceInfo.Description",
-			Value: "Residential Gateway",
-		},
-	}))
-	params := dm.ParameterNames("", true)
-	assert.Len(t, params, 0)
-}
-
-func TestParameterNamesNoMatch(t *testing.T) {
-	state := newState()
-	dm := New(state.WithDefaults(map[string]Parameter{
-		"Device.DeviceInfo.Description": {
-			Path:  "Device.DeviceInfo.Description",
-			Value: "Residential Gateway",
-		},
-	}))
-	params := dm.ParameterNames("Device.Ethernet", true)
-	assert.Len(t, params, 0)
-}
-
-func TestParameterNamesNextLevel(t *testing.T) {
-	state := newState()
-	dm := New(state.WithDefaults(map[string]Parameter{
-		"Device.DeviceInfo.Description": {
-			Path:  "Device.DeviceInfo.Description",
-			Value: "Residential Gateway",
-		},
-		"Device.DeviceInfo.HardwareVersion": {
-			Path:  "Device.DeviceInfo.HardwareVersion",
-			Value: "1.0",
-		},
-	}))
-	params := dm.ParameterNames("Device.DeviceInfo", true)
-	assert.Len(t, params, 2)
 }
