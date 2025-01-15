@@ -92,15 +92,16 @@ func (dm *DataModel) GetValue(path string) (p Parameter, ok bool) {
 // requested parameter is missing ok will be set to false.
 func (dm *DataModel) GetValues(paths ...string) (params []Parameter, ok bool) {
 	res := make(map[string]Parameter)
+	allOK := true
 	for _, path := range paths {
-		p, _ok := dm.GetValue(path)
-		if !_ok {
-			ok = false
-		} else {
+		if p, ok := dm.GetValue(path); ok {
 			res[path] = p
+		} else {
+			allOK = false
 		}
 	}
-	return slices.Collect(maps.Values(res)), ok
+
+	return slices.Collect(maps.Values(res)), allOK
 }
 
 // SetValue sets the value of a given parameter.
@@ -355,6 +356,9 @@ func (dm *DataModel) detectVersion() {
 		}
 		return true
 	})
+	if dm.version == "" {
+		dm.version = unknownVersion
+	}
 }
 
 func (dm *DataModel) prefixedPath(path string) string {
