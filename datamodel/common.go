@@ -2,7 +2,6 @@ package datamodel
 
 import (
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -104,7 +103,7 @@ func (dm *DataModel) PeriodicInformEnabled() bool {
 	if !ok {
 		return false
 	}
-	b, _ := strconv.ParseBool(p.Value)
+	b, _ := strconv.ParseBool(p.GetValue())
 	return b
 }
 
@@ -116,7 +115,7 @@ func (dm *DataModel) PeriodicInformInterval() time.Duration {
 	if !ok {
 		return defaultInterval
 	}
-	i, err := strconv.ParseInt(p.Value, 10, 32)
+	i, err := strconv.ParseInt(p.GetValue(), 10, 32)
 	if err != nil || i == 0 || i > secondsInDay {
 		return defaultInterval
 	}
@@ -134,7 +133,7 @@ func (dm *DataModel) PeriodicInformTime() time.Time {
 	if !ok {
 		return time.Time{}
 	}
-	t, err := time.Parse(time.RFC3339, p.Value)
+	t, err := time.Parse(time.RFC3339, p.GetValue())
 	if err != nil {
 		return time.Time{}
 	}
@@ -146,25 +145,12 @@ func (dm *DataModel) SetPeriodicInformTime(ts time.Time) {
 	dm.SetValue(pathPeriodicInformTime, ts.UTC().Format(time.RFC3339))
 }
 
-// IsPeriodicInformParameter returns true if periodic inform is configured.
-func (dm *DataModel) IsPeriodicInformParameter(name string) bool {
-	if strings.HasSuffix(name, pathPeriodicInformInterval) {
-		return true
-	}
-	if strings.HasSuffix(name, pathPeriodicInformTime) {
-		return true
-	}
-	if strings.HasSuffix(name, pathPeriodicInformEnable) {
-		return true
-	}
-	return false
-}
-
 // SetFirmwareVersion sets the new firmware version value.
 func (dm *DataModel) SetFirmwareVersion(ver string) {
 	dm.SetValue(pathSoftwareVersion, ver)
 }
 
+// SetUptime sets the device uptime to the given duration.
 func (dm *DataModel) SetUptime(dur time.Duration) {
 	dm.SetValue(pathUptime, strconv.Itoa(int(dur/time.Second)))
 }

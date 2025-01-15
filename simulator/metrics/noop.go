@@ -14,22 +14,34 @@ var (
 )
 
 type (
-	noopRegisterer struct{}
-	noopCollector  struct{}
-	noopCounter    struct{ noopCollector }
-	noopCounterVec struct{ noopCollector }
-	noopHistogram  struct{ noopCollector }
-	noopGauge      struct{ noopCollector }
+	noopRegisterer   struct{}
+	noopCollector    struct{}
+	noopCounter      struct{ noopCollector }
+	noopCounterVec   struct{ noopCollector }
+	noopHistogram    struct{ noopCollector }
+	noopHistogramVec struct{ noopCollector }
+	noopGauge        struct{ noopCollector }
+	noopObserver     struct{}
 )
 
+// NewNoop creates a new Metrics instance with no-op implementations of
+// Prometheus metrics. This is useful for testing or disabling metrics
+// collection.
 func NewNoop() *Metrics {
 	return &Metrics{
-		Registrer:         noopRegisterer{},
-		RequestFailures:   noopCounter{},
-		ResponseStatus:    noopCounterVec{},
-		ConnectionLatency: noopHistogram{},
-		InformDuration:    noopHistogram{},
-		ConcurrentInforms: noopGauge{},
+		Bootstrapped:        noopCounter{},
+		ConnectionLatency:   noopHistogram{},
+		MethodCalls:         noopCounterVec{},
+		RequestFailures:     noopCounter{},
+		ResponseStatus:      noopCounterVec{},
+		SessionsAttempted:   noopCounter{},
+		SessionsEstablished: noopCounter{},
+		SessionsCompleted:   noopCounter{},
+		SessionDuration:     noopHistogramVec{},
+		ConcurrentSessions:  noopGauge{},
+		InformEvents:        noopCounterVec{},
+		ParametersRead:      noopCounter{},
+		ParametersWritten:   noopCounter{},
 	}
 }
 
@@ -43,9 +55,11 @@ func (noopCollector) Describe(chan<- *prometheus.Desc)         {}
 func (noopCollector) Inc()                                     {}
 func (noopCollector) Write(*io_prometheus_client.Metric) error { return nil }
 
-func (noopCounterVec) With(prometheus.Labels) prometheus.Counter { return noopCounter{} }
+func (noopCounterVec) With(prometheus.Labels) prometheus.Counter    { return noopCounter{} }
+func (noopHistogramVec) With(prometheus.Labels) prometheus.Observer { return noopObserver{} }
 
-func (noopCounter) Add(float64) {}
+func (noopCounter) Add(float64)      {}
+func (noopObserver) Observe(float64) {}
 
 func (noopHistogram) Observe(float64) {}
 

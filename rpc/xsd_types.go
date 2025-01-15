@@ -1,5 +1,6 @@
 package rpc
 
+// List of supported types.
 const (
 	TypeObject       = "object"
 	TypeBase64       = "base64"
@@ -18,8 +19,12 @@ const (
 	TypeIPv6Address  = "IPv6Address"
 	TypeIPv6Prefix   = "IPv6Prefix"
 	TypeMACAddress   = "MACAddress"
+
+	// TypeGenerator is a special type used to define a generator function.
+	TypeGenerator = "sim:generator"
 )
 
+// XSD returns the XML Schema Definition (XSD) type for the given type.
 func XSD(typ string) string {
 	return "xsd:" + typ
 }

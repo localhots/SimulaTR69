@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/sethvargo/go-envconfig"
 )
 
@@ -85,6 +83,11 @@ var Config struct {
 
 	// RequestTimeout defines how long request processing could take.
 	RequestTimeout time.Duration `env:"REQUEST_TIMEOUT, default=5s"`
+
+	// ArtificialLatency defines the maximum time for a simulator to wait before
+	// sending a request or respoding to an ACS command. It can be used to
+	// simulate slow devices.
+	ArtificialLatency time.Duration `env:"ARTIFICIAL_LATENCY, default=0s"`
 }
 
 // ErrNoCreds is returned when ACS authentication is configured for digest
@@ -100,7 +103,6 @@ const (
 
 // LoadConfig attempts to load configuration from environment variables.
 func LoadConfig(ctx context.Context) error {
-	log.Info().Msg("Loading configuration")
 	err := envconfig.Process(ctx, &Config)
 	if err != nil {
 		return fmt.Errorf("load env config: %w", err)
@@ -111,12 +113,6 @@ func LoadConfig(ctx context.Context) error {
 			return fmt.Errorf("auth %s: %w", Config.ACSAuth, ErrNoCreds)
 		}
 	}
-
-	logLevel, err := zerolog.ParseLevel(Config.LogLevel)
-	if err != nil {
-		return fmt.Errorf("parse log level: %w", err)
-	}
-	log.Logger = log.Logger.Level(logLevel)
 
 	return nil
 }

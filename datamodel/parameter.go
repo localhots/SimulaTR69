@@ -1,11 +1,13 @@
 package datamodel
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/rs/zerolog/log"
 
+	"github.com/localhots/SimulaTR69/datamodel/noise"
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
@@ -18,6 +20,9 @@ type Parameter struct {
 	Value        string
 	Notification rpc.AttributeNotification
 	ACL          []string
+
+	genfn *noise.Func
+	gen   noise.Generator
 }
 
 // NormalizeParameters will normalize all datamodel parameters.
@@ -28,13 +33,23 @@ func NormalizeParameters(params map[string]Parameter) {
 	}
 }
 
+// GetValue returns a parameter value. If the parameter has a generator function
+// it will be used to produce a value, otherwise the value from the parameter
+// will be returned.
+func (p Parameter) GetValue() string {
+	if p.gen != nil {
+		return strconv.FormatFloat(p.gen(), 'f', -1, 64)
+	}
+	return p.Value
+}
+
 // Encode converts a parameter into RPC ParameterValue structure.
 func (p Parameter) Encode() rpc.ParameterValueEncoder {
 	return rpc.ParameterValueEncoder{
 		Name: p.Path,
 		Value: rpc.ValueEncoder{
 			Type:  p.Type,
-			Value: p.Value,
+			Value: p.GetValue(),
 		},
 	}
 }
@@ -65,6 +80,25 @@ func (p *Parameter) Normalize() {
 	}
 	p.Type = td.String()
 	p.Value = normalizeValue(td, p.Path, p.Value)
+}
+
+func (p *Parameter) initGenerator() error {
+	if p.Type != rpc.TypeGenerator {
+		return nil
+	}
+
+	var err error
+	p.genfn, err = noise.ParseDef(p.Value)
+	if err != nil {
+		return fmt.Errorf("parse generator definition: %w", err)
+	}
+	p.gen, err = p.genfn.Generator()
+	if err != nil {
+		return fmt.Errorf("create generator: %w", err)
+	}
+	p.Type = p.genfn.Type
+
+	return nil
 }
 
 // TODO: implement value ranges

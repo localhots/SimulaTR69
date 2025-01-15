@@ -10,13 +10,11 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"strconv"
 	"time"
 
 	"github.com/icholy/digest"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 
 	"github.com/localhots/SimulaTR69/rpc"
 )
@@ -29,11 +27,11 @@ type (
 func (s *Simulator) periodicInform(ctx context.Context) {
 	for !s.stopped() {
 		if !s.dm.PeriodicInformEnabled() {
-			log.Info().Msg("Periodic inform disabled")
+			s.logger.Info().Msg("Periodic inform disabled")
 		}
 
 		delay := time.Until(s.nextInformTime())
-		log.Info().
+		s.logger.Info().
 			Str("delay", delay.Truncate(time.Millisecond).String()).
 			Msg("Scheduling next Inform request")
 
@@ -44,15 +42,14 @@ func (s *Simulator) periodicInform(ctx context.Context) {
 		case evt := <-s.pendingEvents:
 			s.dm.AddEvent(evt)
 			s.startSession(ctx, s.informHandler)
-		case <-s.informScheduleUpdate:
 		case <-s.stop:
 			return
 		}
 
 		// Run all avialable tasks after session is finished
-		log.Debug().Msg("Start processing tasks")
+		s.logger.Debug().Msg("Start processing tasks")
 		s.processTasks()
-		log.Debug().Msg("Finished processing tasks")
+		s.logger.Debug().Msg("Finished processing tasks")
 	}
 }
 
@@ -66,10 +63,6 @@ func (s *Simulator) nextInformTime() time.Time {
 	)
 }
 
-func (s *Simulator) resetInformTimer() {
-	s.informScheduleUpdate <- struct{}{}
-}
-
 // startSession initiates a new session with the ACS.
 func (s *Simulator) startSession(ctx context.Context, handler sessionHandler) {
 	if s.stopped() {
@@ -78,59 +71,54 @@ func (s *Simulator) startSession(ctx context.Context, handler sessionHandler) {
 
 	// Allow only one session at a time
 	if ok := s.sessionMux.TryLock(); !ok {
-		log.Warn().Msg("Session in progress, dropping request")
+		s.logger.Warn().Msg("Session in progress, dropping request")
 		return
 	}
 	defer s.sessionMux.Unlock()
 
+	s.metrics.SessionsAttempted.Inc()
 	u, err := url.Parse(Config.ACSURL)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to parse ACS URL")
+		s.logger.Error().Err(err).Msg("Failed to parse ACS URL")
 		return
 	}
 
+	s.logger.Info().Str("acs_url", Config.ACSURL).Msg("Connecting to ACS")
 	connectionStartTime := time.Now()
-	defer func() {
-		s.metrics.ConcurrentInforms.Dec()
-		s.metrics.InformDuration.Observe(float64(time.Since(connectionStartTime).Milliseconds()))
-	}()
-	s.metrics.ConcurrentInforms.Inc()
-
-	log.Info().Str("acs_url", Config.ACSURL).Msg("Connecting to ACS")
 	client, closeFn, err := newClient(u.Hostname(), tcpPort(u))
 	s.metrics.ConnectionLatency.Observe(float64(time.Since(connectionStartTime).Milliseconds()))
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to connect to ACS")
+		s.logger.Error().Err(err).Msg("Failed to connect to ACS")
 		s.metrics.RequestFailures.Inc()
 		s.dm.IncrRetryAttempts()
 		return
 	}
 	defer func() { _ = closeFn() }()
 
+	s.metrics.SessionsEstablished.Inc()
 	handler(ctx, &client)
 }
 
 // nolint:gocyclo
 func (s *Simulator) informHandler(ctx context.Context, client *http.Client) {
-	log.Info().Msg("Starting inform")
+	s.logger.Info().Msg("Starting inform")
 	informEnv := s.makeInformEnvelope()
-	resp, err := s.request(ctx, client, informEnv)
+
+	evt := informEnv.Body.Inform.Event.Events[0]
+	startedAt := time.Now()
+	s.metrics.ConcurrentSessions.Inc()
+	s.metrics.InformEvents.With(prometheus.Labels{"event": evt.EventCode}).Inc()
+	defer func() {
+		s.metrics.ConcurrentSessions.Dec()
+		s.metrics.SessionDuration.With(prometheus.Labels{
+			"event": evt.EventCode,
+		}).Observe(float64(time.Since(startedAt).Milliseconds()))
+	}()
+
+	_, err := s.send(ctx, client, informEnv)
 	if err != nil {
-		log.Error().Err(err).Msg("Failed to make request")
-		s.dm.IncrRetryAttempts()
-		return
-	}
-	b, err := io.ReadAll(resp.Body)
-	if err != nil {
-		log.Error().Err(err).Msg("Failed to read response")
+		s.logger.Error().Err(err).Msg("Failed to send inform request")
 		s.metrics.RequestFailures.Inc()
-		s.dm.IncrRetryAttempts()
-		return
-	}
-	logPrettyXML("Response from ACS", b)
-	resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		log.Error().Int("status", resp.StatusCode).Msg("Unexpected response status")
 		s.dm.IncrRetryAttempts()
 		return
 	}
@@ -147,7 +135,7 @@ pendingRequests:
 
 			acsResponseEnv, err := s.send(ctx, client, env)
 			if err != nil {
-				log.Error().Err(err).Msg("Failed to make request")
+				s.logger.Error().Err(err).Msg("Failed to make request")
 				s.metrics.RequestFailures.Inc()
 				return
 			}
@@ -159,12 +147,12 @@ pendingRequests:
 	for {
 		acsRequestEnv, err := s.send(ctx, client, nextEnv)
 		if err != nil {
-			log.Error().Err(err).Msg("Failed to make request")
+			s.logger.Error().Err(err).Msg("Failed to make request")
 			s.metrics.RequestFailures.Inc()
 			return
 		}
 		if acsRequestEnv == nil {
-			log.Info().Msg("Got empty response from ACS, inform finished")
+			s.logger.Info().Msg("Got empty response from ACS, inform finished")
 			break
 		}
 
@@ -174,16 +162,20 @@ pendingRequests:
 		}
 	}
 
+	s.metrics.SessionsCompleted.Inc()
 	for _, evt := range informEnv.Body.Inform.Event.Events {
 		if evt.EventCode == rpc.EventBootstrap {
 			s.dm.SetBootstrapped(true)
+			s.metrics.Bootstrapped.Inc()
 			break
 		}
 	}
 }
 
 func (s *Simulator) send(ctx context.Context, client *http.Client, env *rpc.EnvelopeEncoder) (*rpc.EnvelopeDecoder, error) {
-	log.Debug().Msg("Sending post-inform request")
+	s.pretendToBeSlow()
+
+	s.logger.Debug().Str("method", env.Method()).Msg("Sending request to ACS")
 	resp, err := s.request(ctx, client, env)
 	if err != nil {
 		return nil, fmt.Errorf("make request: %w", err)
@@ -204,7 +196,7 @@ func (s *Simulator) send(ctx context.Context, client *http.Client, env *rpc.Enve
 		return nil, nil
 	}
 
-	logPrettyXML("Response from ACS", b)
+	logPrettyXML(s.logger, "Response from ACS", b)
 	acsRequestEnv, err := rpc.Decode(b)
 	if err != nil {
 		return nil, fmt.Errorf("decode envelope: %w", err)
@@ -261,10 +253,10 @@ func (s *Simulator) request(ctx context.Context, client *http.Client, env *rpc.E
 		if err != nil {
 			return nil, fmt.Errorf("encode envelope: %w", err)
 		}
-		logPrettyXML("Request from ACS", b)
+		logPrettyXML(s.logger, "Request from ACS", b)
 		buf = bytes.NewBuffer(b)
 	} else {
-		log.Info().Msg("Sending empty POST request")
+		s.logger.Info().Msg("Sending empty POST request")
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, Config.ACSURL, buf)
@@ -281,10 +273,12 @@ func (s *Simulator) request(ctx context.Context, client *http.Client, env *rpc.E
 		s.metrics.RequestFailures.Inc()
 		return nil, fmt.Errorf("execute request: %w", err)
 	}
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("unexpected response status: %s", resp.Status)
+	}
+
 	s.cookies.SetCookies(req.URL, resp.Cookies())
-	s.metrics.ResponseStatus.With(prometheus.Labels{
-		"status": strconv.Itoa(resp.StatusCode),
-	}).Inc()
+	s.metrics.ResponseStatus.With(prometheus.Labels{"status": resp.Status}).Inc()
 
 	return resp, nil
 }
@@ -314,7 +308,7 @@ func (s *Simulator) processTasks() {
 }
 
 func (s *Simulator) debugEnvelope(env *rpc.EnvelopeEncoder) {
-	logger := log.Info().Str("method", env.Method())
+	logger := s.logger.Info().Str("method", env.Method())
 	if env.Body.Inform != nil {
 		logger.Strs("events", s.dm.PendingEvents())
 	}
@@ -329,11 +323,11 @@ func (s *Simulator) debugEnvelope(env *rpc.EnvelopeEncoder) {
 	gpv := env.Body.GetParameterValuesResponse
 	switch {
 	case gpn != nil && len(gpn.ParameterList.Parameters) > 100:
-		log.Debug().Msg("Sending all parameter names")
+		s.logger.Debug().Msg("Sending all parameter names")
 	case gpv != nil && len(gpv.ParameterList.ParameterValues) > 100:
-		log.Debug().Msg("Sending all parameter values")
+		s.logger.Debug().Msg("Sending all parameter values")
 	default:
-		log.Debug().Msg("Request to ACS")
+		s.logger.Debug().Msg("Request to ACS")
 	}
 }
 
@@ -408,8 +402,8 @@ func calcInformTime(
 	return periodicInformTime.Add(time.Duration(intervalsElapsed) * periodicInformInterval)
 }
 
-func logPrettyXML(msg string, x []byte) {
-	if log.Logger.GetLevel() == zerolog.TraceLevel {
-		log.Trace().Msg(msg + "\n" + prettyXML(x))
+func logPrettyXML(logger zerolog.Logger, msg string, x []byte) {
+	if logger.GetLevel() == zerolog.TraceLevel {
+		logger.Trace().Msg(msg + "\n" + prettyXML(x))
 	}
 }

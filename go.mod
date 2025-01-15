@@ -3,6 +3,8 @@ module github.com/localhots/SimulaTR69
 go 1.23
 
 require (
+	github.com/aquilax/go-perlin v1.1.0
+	github.com/go-echarts/go-echarts/v2 v2.4.6
 	github.com/go-xmlfmt/xmlfmt v1.1.2
 	github.com/icholy/digest v0.1.23
 	github.com/prometheus/client_golang v1.20.4

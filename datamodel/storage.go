@@ -10,6 +10,9 @@ import (
 	"strconv"
 )
 
+// LoadState loads the state from the specified file path. If the file path
+// is empty or the file does not exist, it returns a new state. If there is
+// an error reading or parsing the file, it returns an error.
 func LoadState(filePath string) (*State, error) {
 	if filePath == "" {
 		return newState(), nil
@@ -31,6 +34,7 @@ func LoadState(filePath string) (*State, error) {
 	return &s, nil
 }
 
+// LoadDataModelFile loads the data model from the specified file path.
 func LoadDataModelFile(filePath string) (map[string]Parameter, error) {
 	fd, err := os.Open(filePath)
 	if err != nil {
@@ -41,6 +45,11 @@ func LoadDataModelFile(filePath string) (map[string]Parameter, error) {
 	return LoadDataModel(fd)
 }
 
+// LoadDataModel reads the data model from the provided io.Reader and returns
+// a map of parameters. It expects the data to be in CSV format with a header
+// row. Each row should contain the path, object flag, writable flag, value,
+// and type of the parameter. If there is an error reading or parsing the CSV
+// data, it returns an error.
 func LoadDataModel(r io.Reader) (map[string]Parameter, error) {
 	csvr := csv.NewReader(r)
 
@@ -71,6 +80,9 @@ func LoadDataModel(r io.Reader) (map[string]Parameter, error) {
 			Writable: writable,
 			Type:     f[4],
 			Value:    f[3],
+		}
+		if err := p.initGenerator(); err != nil {
+			return nil, fmt.Errorf("init generator: %w", err)
 		}
 
 		// Add parentPath object automatically if not defined explicitly

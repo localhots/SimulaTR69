@@ -1,15 +1,11 @@
 package simulator
 
 import (
-	"github.com/rs/zerolog/log"
-
 	"github.com/localhots/SimulaTR69/datamodel"
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
 func (s *Simulator) handleSetParameterValues(envID string, r *rpc.SetParameterValuesRequest) *rpc.EnvelopeEncoder {
-	log.Info().Str("method", "SetParameterValues").Msg("Received message")
-	r.Debug()
 	vals := r.ParameterList.ParameterValues
 	params := make([]datamodel.Parameter, 0, len(vals))
 	for _, v := range vals {
@@ -36,17 +32,7 @@ func (s *Simulator) handleSetParameterValues(envID string, r *rpc.SetParameterVa
 		return resp
 	}
 
-	var resetPeriodicInform bool
-	for _, p := range params {
-		if s.dm.IsPeriodicInformParameter(p.Path) {
-			resetPeriodicInform = true
-			break
-		}
-	}
-	if resetPeriodicInform {
-		defer s.resetInformTimer()
-	}
-
+	s.metrics.ParametersWritten.Add(float64(len(params)))
 	s.dm.SetValues(params)
 	s.dm.SetParameterKey(r.ParameterKey)
 	resp := rpc.NewEnvelope(envID)

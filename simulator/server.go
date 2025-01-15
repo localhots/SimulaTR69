@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
@@ -40,9 +41,10 @@ type httpServer struct {
 	httpServer *http.Server
 	handler    crHandlerFn
 	port       int
+	logger     zerolog.Logger
 }
 
-func newHTTPServer(h crHandlerFn) (server, error) {
+func newHTTPServer(h crHandlerFn, logger zerolog.Logger) (server, error) {
 	var err error
 	if Config.Host == "" {
 		Config.Host, err = getIP()
@@ -69,11 +71,12 @@ func newHTTPServer(h crHandlerFn) (server, error) {
 		},
 		handler: h,
 		port:    port,
+		logger:  logger,
 	}
 	mux.HandleFunc("/cwmp", s.handleConnectionRequest)
 	go func() {
 		if err := s.httpServer.Serve(listener); !errors.Is(err, http.ErrServerClosed) {
-			log.Error().Err(err).Msg("Server error")
+			logger.Error().Err(err).Msg("Server error")
 		}
 	}()
 
@@ -81,7 +84,7 @@ func newHTTPServer(h crHandlerFn) (server, error) {
 }
 
 func (s *httpServer) handleConnectionRequest(w http.ResponseWriter, r *http.Request) {
-	log.Info().Msg("Received HTTP connection request")
+	s.logger.Info().Msg("Received HTTP connection request")
 	params := parseCrParams(r.URL)
 	err := s.handler(r.Context(), params)
 	if errors.Is(err, errServiceUnavailable) {

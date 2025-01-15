@@ -34,11 +34,20 @@ linters:
     - revive
     - stylecheck
     - unconvert
+    - unused
     - usestdlibvars
     - wastedassign
     - whitespace
+
 linters-settings:
   gocyclo:
     min-complexity: 12
   nestif:
     min-complexity: 6
+
+issues:
+  include:
+    # don't suppress missing exported method/function parameters
+    - EXC0012
+    # don't suppress missing package level comment
+    - EXC0015

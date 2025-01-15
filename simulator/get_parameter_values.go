@@ -1,14 +1,10 @@
 package simulator
 
 import (
-	"github.com/rs/zerolog/log"
-
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
 func (s *Simulator) handleGetParameterValues(envID string, r *rpc.GetParameterValuesRequest) *rpc.EnvelopeEncoder {
-	log.Info().Str("method", "GetParameterValues").Msg("Received message")
-	r.Debug()
 	resp := rpc.NewEnvelope(envID)
 	names := r.ParameterNames.Names
 	params := []rpc.ParameterValueEncoder{}
@@ -22,16 +18,11 @@ func (s *Simulator) handleGetParameterValues(envID string, r *rpc.GetParameterVa
 			if p.Object {
 				continue
 			}
-			params = append(params, rpc.ParameterValueEncoder{
-				Name: p.Path,
-				Value: rpc.ValueEncoder{
-					Type:  p.Type,
-					Value: p.Value,
-				},
-			})
+			params = append(params, p.Encode())
 		}
 	}
 
+	s.metrics.ParametersRead.Add(float64(len(params)))
 	resp.Body.GetParameterValuesResponse = &rpc.GetParameterValuesResponseEncoder{
 		ParameterList: rpc.ParameterListEncoder{
 			ArrayType:       rpc.ArrayType("cwmp:ParameterValue", len(params)),

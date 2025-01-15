@@ -5,6 +5,9 @@ import (
 	"sync"
 )
 
+// State represents the state of parameters with support for tracking changes,
+// deletions, and default values. It uses a read-write mutex to ensure thread-
+// safe access and modifications.
 type State struct {
 	Bootstrapped bool
 	Changes      map[string]Parameter
@@ -21,6 +24,8 @@ func newState() *State {
 	}
 }
 
+// WithDefaults sets the default parameters for the state and returns the
+// updated state. It allows chaining of state modifications.
 func (s *State) WithDefaults(dm map[string]Parameter) *State {
 	s.defaults = dm
 	return s
