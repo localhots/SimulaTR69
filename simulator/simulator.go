@@ -159,12 +159,14 @@ func (s *Simulator) handleConnectionRequest(_ context.Context, params crParams) 
 	if s.dm.DownUntil().After(time.Now()) {
 		return errServiceUnavailable
 	}
-	if params.un != s.dm.ConnectionRequestUsername().Value {
-		return errForbidden
-	}
-	sig := sign(params.ts+params.id+params.un+params.cn, s.dm.ConnectionRequestPassword().Value)
-	if sig != params.sig {
-		return errForbidden
+	if Config.ConnReqAuth {
+		if params.un != s.dm.ConnectionRequestUsername().Value {
+			return errForbidden
+		}
+		sig := sign(params.ts+params.id+params.un+params.cn, s.dm.ConnectionRequestPassword().Value)
+		if sig != params.sig {
+			return errForbidden
+		}
 	}
 
 	select {
