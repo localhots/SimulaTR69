@@ -99,6 +99,7 @@ func (s *Simulator) Start(ctx context.Context) error {
 		}
 		s.httpServer = srv
 		log.Info().Str("server_url", s.httpServer.url()).Msg("Started HTTP connection request server")
+		s.dm.SetConnectionRequestURL(s.httpServer.url())
 	}
 	if Config.ConnReqEnableUDP {
 		port := int(Config.Port)
@@ -112,14 +113,13 @@ func (s *Simulator) Start(ctx context.Context) error {
 			}
 			s.udpServer = us
 			log.Info().Str("server_url", s.udpServer.url()).Msg("Started UDP connection request server")
+			s.dm.SetUDPConnectionRequestAddress(s.udpServer.url())
 		} else {
 			log.Warn().Msg("Can't start UDP connection request server on undefined port")
 		}
 	}
 
 	s.startedAt = time.Now()
-	s.dm.SetConnectionRequestURL(s.httpServer.url())
-	s.dm.SetUDPConnectionRequestAddress(s.udpServer.url())
 	s.SetPeriodicInformInterval(Config.InformInterval)
 	go s.periodicInform(ctx)
 
