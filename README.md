@@ -73,8 +73,8 @@ Default is `false`.
 
 ## Connection Requests
 
-All connection requests are accepted and trusted. This is done for convenience.
-If the ACS will set the following parameter values they will be ignored:
+Simulator can accept connection requests made over UDP and HTTP.
+If the ACS will set the following parameter values they will be respected:
 * `ManagementServer.ConnectionRequestUsername`
 * `ManagementServer.ConnectionRequestPassword`
 

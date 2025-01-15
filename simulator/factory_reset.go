@@ -13,7 +13,8 @@ func (s *Simulator) handleFactoryReset(envID string) *rpc.EnvelopeEncoder {
 		s.pretendOfflineFor(Config.UpgradeDelay)
 
 		s.dm.Reset()
-		s.dm.SetConnectionRequestURL(s.server.url())
+		s.dm.SetConnectionRequestURL(s.httpServer.url())
+		s.dm.SetUDPConnectionRequestAddress(s.udpServer.url())
 		if Config.SerialNumber != "" {
 			s.dm.SetSerialNumber(Config.SerialNumber)
 		}

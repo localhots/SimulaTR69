@@ -20,6 +20,13 @@ var Config struct {
 	// requests.
 	ConnReqEnableHTTP bool `env:"CR_HTTP, default=true"`
 
+	// ConnReqEnableUDP enables a UDP server that can accept connection
+	// requests.
+	ConnReqEnableUDP bool `env:"CR_UDP, default=true"`
+
+	// ConnReqAuth enables authentication for connection requests.
+	ConnReqAuth bool `env:"CR_AUTH, default=false"`
+
 	// Host is the host name or IP address used by the simulator to accept
 	// connection requests. If no value is provided it will be automatically
 	// resolved.

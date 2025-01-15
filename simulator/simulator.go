@@ -2,6 +2,9 @@ package simulator
 
 import (
 	"context"
+	"crypto/hmac"
+	"crypto/sha1" //nolint:gosec
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"math/rand"
@@ -25,7 +28,8 @@ import (
 
 // Simulator is a TR-069 device simulator.
 type Simulator struct {
-	server     server
+	httpServer server
+	udpServer  server
 	dm         *datamodel.DataModel
 	cookies    http.CookieJar
 	startedAt  time.Time
@@ -42,13 +46,17 @@ type Simulator struct {
 	artificialLatency time.Duration
 }
 
-var errServiceUnavailable = errors.New("service unavailable")
+var (
+	errServiceUnavailable = errors.New("service unavailable")
+	errForbidden          = errors.New("forbidden")
+)
 
 // New creates a new simulator instance.
 func New(dm *datamodel.DataModel) *Simulator {
 	jar, _ := cookiejar.New(nil)
 	return &Simulator{
-		server:            newNoopServer(),
+		httpServer:        newNoopServer(),
+		udpServer:         newNoopServer(),
 		dm:                dm,
 		cookies:           jar,
 		metrics:           metrics.NewNoop(),
@@ -89,12 +97,29 @@ func (s *Simulator) Start(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("start connection request server: %w", err)
 		}
-		s.server = srv
-		s.logger.Info().Str("server_url", s.server.url()).Msg("Started connection request server")
+		s.httpServer = srv
+		log.Info().Str("server_url", s.httpServer.url()).Msg("Started HTTP connection request server")
+		s.dm.SetConnectionRequestURL(s.httpServer.url())
+	}
+	if Config.ConnReqEnableUDP {
+		port := int(Config.Port)
+		if s.httpServer.listenPort() != 0 {
+			port = s.httpServer.listenPort()
+		}
+		if port != 0 {
+			us, err := newUDPServer(ctx, port, s.handleConnectionRequest)
+			if err != nil {
+				return fmt.Errorf("start connection request server: %w", err)
+			}
+			s.udpServer = us
+			log.Info().Str("server_url", s.udpServer.url()).Msg("Started UDP connection request server")
+			s.dm.SetUDPConnectionRequestAddress(s.udpServer.url())
+		} else {
+			log.Warn().Msg("Can't start UDP connection request server on undefined port")
+		}
 	}
 
 	s.startedAt = time.Now()
-	s.dm.SetConnectionRequestURL(s.server.url())
 	s.SetPeriodicInformInterval(Config.InformInterval)
 	go s.periodicInform(ctx)
 
@@ -113,8 +138,11 @@ func (s *Simulator) Stop(ctx context.Context) error {
 	if err := s.dm.SaveState(Config.StateFilePath); err != nil {
 		return fmt.Errorf("save state: %w", err)
 	}
-	if s.server != nil {
-		return s.server.stop(ctx)
+	if err := s.httpServer.stop(ctx); err != nil {
+		return fmt.Errorf("stop HTTP connection request server: %w", err)
+	}
+	if err := s.udpServer.stop(ctx); err != nil {
+		return fmt.Errorf("stop HTTP connection request server: %w", err)
 	}
 	return nil
 }
@@ -127,9 +155,18 @@ func (s *Simulator) SetPeriodicInformInterval(dur time.Duration) {
 	}
 }
 
-func (s *Simulator) handleConnectionRequest(_ context.Context) error {
+func (s *Simulator) handleConnectionRequest(_ context.Context, params crParams) error {
 	if s.dm.DownUntil().After(time.Now()) {
 		return errServiceUnavailable
+	}
+	if Config.ConnReqAuth {
+		if params.un != s.dm.ConnectionRequestUsername().Value {
+			return errForbidden
+		}
+		sig := sign(params.ts+params.id+params.un+params.cn, s.dm.ConnectionRequestPassword().Value)
+		if sig != params.sig {
+			return errForbidden
+		}
 	}
 
 	select {
@@ -264,6 +301,12 @@ func (s *Simulator) newEnvelope() *rpc.EnvelopeEncoder {
 func (s *Simulator) nextEnvelopeID() string {
 	id := atomic.AddUint64(&s.envelopeID, 1)
 	return strconv.FormatUint(id, 10)
+}
+
+func sign(input, key string) string {
+	h := hmac.New(sha1.New, []byte(key))
+	h.Write([]byte(input))
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 func prettyXML(b []byte) string {

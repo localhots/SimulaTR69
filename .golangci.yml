@@ -38,9 +38,13 @@ linters:
     - usestdlibvars
     - wastedassign
     - whitespace
+
 linters-settings:
   gocyclo:
     min-complexity: 12
+  nestif:
+    min-complexity: 6
+
 issues:
   include:
     # don't suppress missing exported method/function parameters
