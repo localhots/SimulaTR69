@@ -107,16 +107,18 @@ func PerlinNoise(offset, alpha, beta float64, scale float64) Generator {
 //   - noiseScale: The amplitude of the random noise added to the trend.
 //     Determines the intensity of the noise.
 func TrendWithNoise(startValue, step, noiseScale float64) func() float64 {
-	value := startValue
+	prevValue := startValue
 	return func() float64 {
-		value += step
+		newValue := prevValue + step
 		// nolint:gosec
 		// It's okay to use the default random number generator here.
 		noise := (rand.Float64()*2 - 1) * noiseScale
 		if step < 0 {
-			return min(value, value+noise)
+			newValue = min(newValue, newValue+noise)
 		}
-		return max(value, value+noise)
+		newValue = max(newValue, newValue+noise)
+		prevValue = newValue
+		return newValue
 	}
 }
 
