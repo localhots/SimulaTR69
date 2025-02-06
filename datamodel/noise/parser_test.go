@@ -50,6 +50,15 @@ func TestParseDef(t *testing.T) {
 			err: "",
 		},
 		{
+			in: "foo(a=-1) as int",
+			exp: &Func{
+				Name: "foo",
+				Args: map[string]float64{"a": -1},
+				Type: "int",
+			},
+			err: "",
+		},
+		{
 			in:  "foo(a=bar) as int",
 			exp: nil,
 			err: `invalid generator definition`,
