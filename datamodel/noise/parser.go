@@ -26,8 +26,8 @@ const (
 )
 
 var (
-	genReg  = regexp.MustCompile(`(?P<func_name>\w+)\((?P<args>(?:\w+=[0-9\.]+,?\s*)*)\)\s+as\s+(?P<type_name>[\w:]+)`)
-	argsReg = regexp.MustCompile(`(\w+)=([0-9\.]+)`)
+	genReg  = regexp.MustCompile(`(?P<func_name>\w+)\((?P<args>(?:\w+=-?[0-9\.]+,?\s*)*)\)\s+as\s+(?P<type_name>[\w:]+)`)
+	argsReg = regexp.MustCompile(`(\w+)=(-?[0-9\.]+)`)
 )
 
 // ParseDef parses generator function definitions from a string format.
