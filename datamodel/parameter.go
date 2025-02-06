@@ -33,6 +33,12 @@ func NormalizeParameters(params map[string]Parameter) {
 	}
 }
 
+// Name returns parameter name.
+func (p Parameter) Name() string {
+	tokens := strings.Split(p.Path, ".")
+	return tokens[len(tokens)-1]
+}
+
 // GetValue returns a parameter value. If the parameter has a generator function
 // it will be used to produce a value, otherwise the value from the parameter
 // will be returned.
