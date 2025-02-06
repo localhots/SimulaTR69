@@ -65,6 +65,14 @@ func (dm *DataModel) Version() string {
 	return string(dm.version)
 }
 
+// Each iterates over all parameters in the DataModel. Iteration can be stopped
+// by returning false from the callback function.
+func (dm *DataModel) Each(fn func(p Parameter) (cont bool)) {
+	dm.values.forEach(func(p Parameter) (cont bool) {
+		return fn(p)
+	})
+}
+
 // GetAll returns one or more parameters prefixed with the given path.
 func (dm *DataModel) GetAll(path string) (params []Parameter, ok bool) {
 	if !strings.HasSuffix(path, ".") {
