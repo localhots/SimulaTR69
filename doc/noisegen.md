@@ -105,17 +105,17 @@ parameters for simulating your sensor, modify the `example_test.go` file and
 generate previews using the following command:
 
 ```
-go test -tags=preview -v ./datamodel/noise -run TestGeneratePreviews
+make gen-noise-preview
 ```
 
 ## Performance
 
-All generator algorithms are efficient and performance should not be a concern.
-To evaluate performance on your hardware, run the benchmarks using the following
-command:
+All generator algorithms are efficient zero-allocation functions and
+performance should not be a concern.  To evaluate performance on your hardware,
+run the benchmarks using the following command:
 
 ```
-go test -bench=. ./datamodel/noise
+make bench-noise
 ```
 
 ```
@@ -123,9 +123,10 @@ goos: darwin
 goarch: arm64
 pkg: github.com/localhots/SimulaTR69/datamodel/noise
 cpu: Apple M3 Pro
-BenchmarkRandomWalk-11          189088714                6.164 ns/op
-BenchmarkPiecewiseLinear-11     166407223                7.205 ns/op
-BenchmarkSineWithNoise-11       100000000               10.98 ns/op
-BenchmarkPerlinNoise-11         127824692                9.442 ns/op
-BenchmarkTrendWithNoise-11      221975839                5.372 ns/op
+BenchmarkRandomWalk-11          189088714                6.164 ns/op       0 B/op	       0 allocs/op
+BenchmarkPiecewiseLinear-11     166407223                7.205 ns/op       0 B/op	       0 allocs/op
+BenchmarkSineWithNoise-11       100000000                10.98 ns/op       0 B/op	       0 allocs/op
+BenchmarkPerlinNoise-11         127824692                9.442 ns/op       0 B/op	       0 allocs/op
+BenchmarkTrendWithNoise-11      221975839                5.372 ns/op       0 B/op	       0 allocs/op
 ```
+

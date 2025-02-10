@@ -13,7 +13,7 @@ test:
 	go test -v ./...
 
 bench-noise:
-	go test -bench=. ./datamodel/noise
+	go test -benchmem -bench=. ./datamodel/noise
 
 gen-noise-preview:
 	go test -tags=preview -v ./datamodel/noise -run TestGeneratePreviews
