@@ -44,7 +44,18 @@ func (p Parameter) Name() string {
 // will be returned.
 func (p Parameter) GetValue() string {
 	if p.gen != nil {
-		return strconv.FormatFloat(p.gen(), 'f', -1, 64)
+		switch rpc.NoXSD(p.Type) {
+		case rpc.TypeInt, rpc.TypeLong:
+			return strconv.FormatInt(int64(p.gen()), 10)
+		case rpc.TypeUnsignedInt, rpc.TypeUnsignedLong:
+			return strconv.FormatUint(uint64(p.gen()), 10)
+		case rpc.TypeFloat, rpc.TypeDouble:
+			return strconv.FormatFloat(p.gen(), 'f', -1, 64)
+		case rpc.TypeBoolean:
+			return strconv.FormatBool(int(p.gen()) == 1)
+		default:
+			return ""
+		}
 	}
 	return p.Value
 }
