@@ -87,7 +87,7 @@ func LoadDataModel(r io.Reader) (map[string]Parameter, error) {
 
 		// Add parentPath object automatically if not defined explicitly
 		parentPath := parent(p.Path)
-		if _, ok := values[parentPath]; !ok {
+		if _, ok := values[parentPath]; !ok && parentPath != "" {
 			values[parentPath] = Parameter{
 				Path:     parentPath,
 				Object:   true,
