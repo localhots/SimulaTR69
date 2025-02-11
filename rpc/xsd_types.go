@@ -1,5 +1,9 @@
 package rpc
 
+import (
+	"strings"
+)
+
 // List of supported types.
 const (
 	TypeObject       = "object"
@@ -19,6 +23,8 @@ const (
 	TypeIPv6Address  = "IPv6Address"
 	TypeIPv6Prefix   = "IPv6Prefix"
 	TypeMACAddress   = "MACAddress"
+	TypeFloat        = "float"
+	TypeDouble       = "double"
 
 	// TypeGenerator is a special type used to define a generator function.
 	TypeGenerator = "sim:generator"
@@ -27,4 +33,12 @@ const (
 // XSD returns the XML Schema Definition (XSD) type for the given type.
 func XSD(typ string) string {
 	return "xsd:" + typ
+}
+
+// NoXSD removes the XSD prefix from the type.
+func NoXSD(typ string) string {
+	if strings.HasPrefix(typ, "xsd:") {
+		return typ[4:]
+	}
+	return typ
 }

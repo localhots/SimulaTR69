@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+
+	"github.com/localhots/SimulaTR69/rpc"
 )
 
 // Func represents a noise generator function with its name, arguments, and type.
@@ -56,6 +58,16 @@ func ParseDef(str string) (*Func, error) {
 			return nil, fmt.Errorf("parse float (%v): %w", v, err)
 		}
 		args[k] = val
+	}
+
+	// Validate return type
+	switch rpc.NoXSD(matches[3]) {
+	case rpc.TypeInt, rpc.TypeLong:
+	case rpc.TypeUnsignedInt, rpc.TypeUnsignedLong:
+	case rpc.TypeFloat, rpc.TypeDouble:
+	case rpc.TypeBoolean:
+	default:
+		return nil, fmt.Errorf("unsupported type: %s", matches[3])
 	}
 
 	return &Func{

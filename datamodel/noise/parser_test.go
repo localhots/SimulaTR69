@@ -73,6 +73,11 @@ func TestParseDef(t *testing.T) {
 			exp: nil,
 			err: "invalid generator definition",
 		},
+		{
+			in:  "foo(a=1) as banana",
+			exp: nil,
+			err: `unsupported type: banana`,
+		},
 	}
 
 	for _, tt := range tests {
