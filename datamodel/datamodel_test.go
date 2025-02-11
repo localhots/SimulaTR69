@@ -2,7 +2,6 @@ package datamodel
 
 import (
 	"errors"
-	"fmt"
 	"testing"
 	"time"
 
@@ -86,6 +85,76 @@ func TestGetValue(t *testing.T) {
 	assert.Equal(t, "Residential Gateway", param.Value)
 }
 
+func TestGetValueFormatGen(t *testing.T) {
+	const path1 = "Device.Ethernet.Interface.5.Stats.BytesReceived"
+	const path2 = "Device.Ethernet.Interface.5.Enabled"
+	t.Run("int", func(t *testing.T) {
+		state := newState()
+		dm := New(state.WithDefaults(map[string]Parameter{
+			path1: {
+				Path: path1,
+				Type: "xsd:int",
+				gen:  func() float64 { return 123.456 },
+			},
+		}))
+		param, ok := dm.GetValue(path1)
+		assert.True(t, ok)
+		assert.Equal(t, "123", param.GetValue())
+	})
+	t.Run("uint", func(t *testing.T) {
+		state := newState()
+		dm := New(state.WithDefaults(map[string]Parameter{
+			path1: {
+				Path: path1,
+				Type: "unsignedInt",
+				gen:  func() float64 { return 123.456 },
+			},
+		}))
+		param, ok := dm.GetValue(path1)
+		assert.True(t, ok)
+		assert.Equal(t, "123", param.GetValue())
+	})
+	t.Run("float", func(t *testing.T) {
+		state := newState()
+		dm := New(state.WithDefaults(map[string]Parameter{
+			path1: {
+				Path: path1,
+				Type: "double",
+				gen:  func() float64 { return 123.456 },
+			},
+		}))
+		param, ok := dm.GetValue(path1)
+		assert.True(t, ok)
+		assert.Equal(t, "123.456", param.GetValue())
+	})
+	t.Run("bool", func(t *testing.T) {
+		state := newState()
+		dm := New(state.WithDefaults(map[string]Parameter{
+			path2: {
+				Path: path2,
+				Type: "xsd:boolean",
+				gen:  func() float64 { return 1 },
+			},
+		}))
+		param, ok := dm.GetValue(path2)
+		assert.True(t, ok)
+		assert.Equal(t, "true", param.GetValue())
+	})
+	t.Run("unsupported", func(t *testing.T) {
+		state := newState()
+		dm := New(state.WithDefaults(map[string]Parameter{
+			path2: {
+				Path: path2,
+				Type: "xsd:string",
+				gen:  func() float64 { return 123 },
+			},
+		}))
+		param, ok := dm.GetValue(path2)
+		assert.True(t, ok)
+		assert.Equal(t, "", param.GetValue())
+	})
+}
+
 func TestGetValues(t *testing.T) {
 	state := newState()
 	dm := New(state.WithDefaults(map[string]Parameter{
@@ -106,7 +175,6 @@ func TestGetValues(t *testing.T) {
 		"Device.DeviceInfo.Description",
 		"Device.DeviceInfo.HardwareVersion",
 	)
-	fmt.Println(ok, params)
 	assert.True(t, ok)
 	assert.Len(t, params, 2)
 }

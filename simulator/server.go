@@ -145,7 +145,6 @@ func newUDPServer(ctx context.Context, port int, h crHandlerFn) (server, error) 
 	if err != nil {
 		return nil, fmt.Errorf("get ip address: %w", err)
 	}
-	fmt.Println(ip, port)
 
 	listener, err := net.ListenUDP("udp4", &net.UDPAddr{
 		IP:   net.ParseIP(ip),
