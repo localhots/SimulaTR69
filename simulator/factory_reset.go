@@ -1,6 +1,10 @@
 package simulator
 
 import (
+	"context"
+
+	"github.com/localhots/blip/noctx/log"
+
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
@@ -9,7 +13,7 @@ func (s *Simulator) handleFactoryReset(envID string) *rpc.EnvelopeEncoder {
 	resp.Body.FactoryResetResponse = &rpc.FactoryResetResponseEncoder{}
 
 	s.tasks <- func() taskFn {
-		s.logger.Debug().Dur("delay", Config.UpgradeDelay).Msg("Simulating factory reset")
+		s.logger.Debug(context.TODO(), "Simulating factory reset", log.F{"delay": Config.UpgradeDelay})
 		s.pretendOfflineFor(Config.UpgradeDelay)
 
 		s.dm.Reset()
@@ -19,7 +23,7 @@ func (s *Simulator) handleFactoryReset(envID string) *rpc.EnvelopeEncoder {
 			s.dm.SetSerialNumber(Config.SerialNumber)
 		}
 
-		s.logger.Debug().Msg("Starting up")
+		s.logger.Debug(context.TODO(), "Starting up")
 		s.pendingEvents <- rpc.EventBootstrap
 		return nil
 	}

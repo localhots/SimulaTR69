@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"github.com/localhots/blip"
+	"github.com/localhots/blip/noctx/log"
 )
 
 // server is a common interface for connection requests servers.
@@ -41,10 +41,10 @@ type httpServer struct {
 	httpServer *http.Server
 	handler    crHandlerFn
 	port       int
-	logger     zerolog.Logger
+	logger     *blip.Logger
 }
 
-func newHTTPServer(h crHandlerFn, logger zerolog.Logger) (server, error) {
+func newHTTPServer(h crHandlerFn, logger *blip.Logger) (server, error) {
 	var err error
 	if Config.Host == "" {
 		Config.Host, err = getIP()
@@ -76,7 +76,7 @@ func newHTTPServer(h crHandlerFn, logger zerolog.Logger) (server, error) {
 	mux.HandleFunc("/cwmp", s.handleConnectionRequest)
 	go func() {
 		if err := s.httpServer.Serve(listener); !errors.Is(err, http.ErrServerClosed) {
-			logger.Error().Err(err).Msg("Server error")
+			logger.Error(context.TODO(), "Server error", log.Cause(err))
 		}
 	}()
 
@@ -84,7 +84,11 @@ func newHTTPServer(h crHandlerFn, logger zerolog.Logger) (server, error) {
 }
 
 func (s *httpServer) handleConnectionRequest(w http.ResponseWriter, r *http.Request) {
-	s.logger.Info().Msg("Received HTTP connection request")
+	s.logger.Info(context.TODO(), "Received HTTP connection request", log.F{
+		"remote_addr": r.RemoteAddr,
+		"method":      r.Method,
+		"url":         r.URL.String(),
+	})
 	params := parseCrParams(r.URL)
 	err := s.handler(r.Context(), params)
 	if errors.Is(err, errServiceUnavailable) {
@@ -159,27 +163,27 @@ func newUDPServer(ctx context.Context, port int, h crHandlerFn) (server, error) 
 		for {
 			n, addr, err := listener.ReadFromUDP(buf[:])
 			if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
-				log.Error().Err(err).Msg("Error reading UDP connection")
+				log.Error("Error reading UDP connection", log.Cause(err))
 				continue
 			}
 			if addr == nil {
 				continue
 			}
 
-			log.Info().Str("addr", addr.String()).Msg("Accepted UDP connection request")
+			log.Info("Accepted UDP connection request", log.F{"addr": addr.String()})
 			if n == 0 {
-				log.Warn().Msg("Received empty UDP message")
+				log.Warn("Received empty UDP message")
 				continue
 			}
 			u, err := parseUDPMessage(buf[:])
 			if err != nil {
-				log.Warn().Err(err).Msg("Failed to parse UDP message")
+				log.Warn("Failed to parse UDP message", log.Cause(err))
 				continue
 			}
 			params := parseCrParams(u)
 
 			if err := h(ctx, params); err != nil {
-				log.Error().Err(err).Msg("Failed to handle connection request")
+				log.Error("Failed to handle connection request", log.Cause(err))
 			}
 		}
 	}()

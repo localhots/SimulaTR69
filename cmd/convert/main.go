@@ -15,8 +15,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/localhots/blip/noctx/log"
+
 	"github.com/localhots/SimulaTR69/datamodel"
-	"github.com/rs/zerolog/log"
 )
 
 var (
@@ -28,13 +29,13 @@ var (
 func main() {
 	flag.Parse()
 	if *source == "" {
-		log.Fatal().Msg("Source file path is empty")
+		log.Fatal("Source file path is empty")
 	}
 	if *typ == "" {
-		log.Fatal().Msg("Source file type is empty")
+		log.Fatal("Source file type is empty")
 	}
 	if *dest == "" {
-		log.Fatal().Msg("Destination file path is empty")
+		log.Fatal("Destination file path is empty")
 	}
 
 	switch *typ {
@@ -42,17 +43,17 @@ func main() {
 		pvr := read(*source)
 		dm := convertGetParameterValuesResponse(pvr)
 		if err := save(*dest, dm); err != nil {
-			log.Fatal().Err(err).Msg("Failed to save datamodel file")
+			log.Fatal("Failed to save datamodel file", log.Cause(err))
 		}
 	default:
-		log.Fatal().Str("type", *typ).Msg("Unknown format")
+		log.Fatal("Unknown format", log.F{"type": *typ})
 	}
 }
 
 func read(path string) []byte {
 	b, err := os.ReadFile(path)
 	if err != nil {
-		log.Fatal().Err(err).Str("path", path).Msg("Failed to read source file")
+		log.Fatal("Failed to read source file", log.Cause(err), log.F{"path": path})
 	}
 	return b
 }
@@ -109,7 +110,7 @@ func convertGetParameterValuesResponse(b []byte) []datamodel.Parameter {
 	}
 	err := dec.Decode(&gpv)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to decode GetParameterValuesResponse")
+		log.Fatal("Failed to decode GetParameterValuesResponse", log.Cause(err))
 	}
 
 	params := make([]datamodel.Parameter, 0, len(gpv.ParameterList.ParameterValueStruct))

@@ -5,7 +5,7 @@ package noise
 
 import (
 	"math"
-	"math/rand/v2"
+	rand "math/rand/v2"
 	"time"
 
 	"github.com/aquilax/go-perlin"

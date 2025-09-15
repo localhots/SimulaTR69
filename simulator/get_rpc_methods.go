@@ -1,14 +1,18 @@
 package simulator
 
 import (
+	"context"
+
+	"github.com/localhots/blip/noctx/log"
+
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
 func (s *Simulator) handleGetRPCMethods(envID string) *rpc.EnvelopeEncoder {
-	s.logger.Info().Str("method", "GetRPCMethods").Msg("Received message")
+	s.logger.Info(context.TODO(), "Received message", log.F{"method": "GetRPCMethods"})
 	methods := rpc.SupportedMethods()
 	for _, m := range methods {
-		s.logger.Debug().Str("method", m).Msg("GetRPCMethodsResponse")
+		s.logger.Debug(context.TODO(), "GetRPCMethodsResponse", log.F{"method": m})
 	}
 	resp := rpc.NewEnvelope(envID)
 	resp.Body.GetRPCMethodsResponse = &rpc.GetRPCMethodsResponseEncoder{
