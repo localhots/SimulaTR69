@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/sethvargo/go-envconfig"
+	envconfig "github.com/sethvargo/go-envconfig"
 )
 
 // Config is a global configuration store.
