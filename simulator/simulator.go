@@ -17,9 +17,9 @@ import (
 	"time"
 
 	"github.com/go-xmlfmt/xmlfmt"
+	"github.com/localhots/blip"
+	"github.com/localhots/blip/noctx/log"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 
 	"github.com/localhots/SimulaTR69/datamodel"
 	"github.com/localhots/SimulaTR69/rpc"
@@ -35,7 +35,7 @@ type Simulator struct {
 	startedAt  time.Time
 	envelopeID uint64
 	metrics    *metrics.Metrics
-	logger     zerolog.Logger
+	logger     *blip.Logger
 
 	pendingEvents   chan string
 	pendingRequests chan func(*rpc.EnvelopeEncoder)
@@ -60,7 +60,7 @@ func New(dm *datamodel.DataModel) *Simulator {
 		dm:                dm,
 		cookies:           jar,
 		metrics:           metrics.NewNoop(),
-		logger:            log.Logger,
+		logger:            blip.New(blip.DefaultConfig()),
 		pendingEvents:     make(chan string, 5),
 		pendingRequests:   make(chan func(*rpc.EnvelopeEncoder), 5),
 		stop:              make(chan struct{}),
@@ -78,7 +78,7 @@ func NewWithMetrics(dm *datamodel.DataModel, m *metrics.Metrics) *Simulator {
 }
 
 // UseLogger sets the logger for the simulator.
-func (s *Simulator) UseLogger(logger zerolog.Logger) {
+func (s *Simulator) UseLogger(logger *blip.Logger) {
 	s.logger = logger
 }
 
@@ -98,7 +98,9 @@ func (s *Simulator) Start(ctx context.Context) error {
 			return fmt.Errorf("start connection request server: %w", err)
 		}
 		s.httpServer = srv
-		log.Info().Str("server_url", s.httpServer.url()).Msg("Started HTTP connection request server")
+		log.Info("Started HTTP connection request server", log.F{
+			"server_url": s.httpServer.url(),
+		})
 		s.dm.SetConnectionRequestURL(s.httpServer.url())
 	}
 	if Config.ConnReqEnableUDP {
@@ -112,10 +114,12 @@ func (s *Simulator) Start(ctx context.Context) error {
 				return fmt.Errorf("start connection request server: %w", err)
 			}
 			s.udpServer = us
-			log.Info().Str("server_url", s.udpServer.url()).Msg("Started UDP connection request server")
+			log.Info("Started UDP connection request server", log.F{
+				"server_url": s.udpServer.url(),
+			})
 			s.dm.SetUDPConnectionRequestAddress(s.udpServer.url())
 		} else {
-			log.Warn().Msg("Can't start UDP connection request server on undefined port")
+			log.Warn("Can't start UDP connection request server on undefined port")
 		}
 	}
 
@@ -213,7 +217,7 @@ func (s *Simulator) handleEnvelope(env *rpc.EnvelopeDecoder) *rpc.EnvelopeEncode
 		env.Body.Upload.Debug(s.logger)
 		return s.handleUpload(envID, env.Body.Upload)
 	case env.Body.FactoryReset != nil:
-		s.logger.Info().Str("method", "FactoryReset").Msg("Received message")
+		s.logger.Info(context.TODO(), "Received message", log.F{"method": "FactoryReset"})
 		return s.handleFactoryReset(envID)
 	case env.Body.GetQueuedTransfers != nil:
 		return s.handleGetQueuedTransfers(envID)
@@ -230,42 +234,42 @@ func (s *Simulator) handleEnvelope(env *rpc.EnvelopeDecoder) *rpc.EnvelopeEncode
 	case env.Body.TransferCompleteResponse != nil:
 		return nil
 	default:
-		s.logger.Warn().Msg("Unknown method")
+		s.logger.Warn(context.TODO(), "Unknown method", log.F{"env_id": envID})
 		return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 	}
 }
 
 func (s *Simulator) handleGetQueuedTransfers(envID string) *rpc.EnvelopeEncoder {
-	s.logger.Info().Str("method", "GetQueuedTransfers").Msg("Received message")
+	s.logger.Info(context.TODO(), "Received message", log.F{"method": "GetQueuedTransfers"})
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
 func (s *Simulator) handleGetAllQueuedTransfers(envID string) *rpc.EnvelopeEncoder {
-	s.logger.Info().Str("method", "GetAllQueuedTransfers").Msg("Received message")
+	s.logger.Info(context.TODO(), "Received message", log.F{"method": "GetAllQueuedTransfers"})
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
 func (s *Simulator) handleScheduleInform(envID string) *rpc.EnvelopeEncoder {
-	s.logger.Info().Str("method", "ScheduleInform").Msg("Received message")
+	s.logger.Info(context.TODO(), "Received message", log.F{"method": "ScheduleInform"})
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
 func (s *Simulator) handleSetVouchers(envID string) *rpc.EnvelopeEncoder {
-	s.logger.Info().Str("method", "SetVouchers").Msg("Received message")
+	s.logger.Info(context.TODO(), "Received message", log.F{"method": "SetVouchers"})
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
 func (s *Simulator) handleGetOptions(envID string) *rpc.EnvelopeEncoder {
-	s.logger.Info().Str("method", "GetOptions").Msg("Received message")
+	s.logger.Info(context.TODO(), "Received message", log.F{"method": "GetOptions"})
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
 func (s *Simulator) handleFault(envID string, r *rpc.FaultPayload) *rpc.EnvelopeEncoder {
-	s.logger.Error().
-		Str("env_id", envID).
-		Str("code", r.Detail.Fault.FaultCode.String()).
-		Str("string", r.Detail.Fault.FaultString).
-		Msg("ACS fault")
+	s.logger.Error(context.TODO(), "ACS fault", log.F{
+		"env_id": envID,
+		"code":   r.Detail.Fault.FaultCode.String(),
+		"string": r.Detail.Fault.FaultString,
+	})
 	return nil
 }
 
@@ -280,7 +284,7 @@ func (s *Simulator) pretendToBeSlow() {
 	if s.artificialLatency > 0 {
 		// nolint:gosec
 		delay := time.Duration(rand.Int63n(int64(s.artificialLatency))).Round(time.Millisecond)
-		s.logger.Debug().Str("delay", delay.String()).Msg("Simulating slow response")
+		s.logger.Debug(context.TODO(), "Simulating slow response", log.F{"delay": delay.String()})
 		time.Sleep(delay)
 	}
 }

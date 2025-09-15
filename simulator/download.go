@@ -1,12 +1,15 @@
 package simulator
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/localhots/blip/noctx/log"
 
 	"github.com/localhots/SimulaTR69/rpc"
 )
@@ -41,9 +44,9 @@ func (s *Simulator) handleDownload(envID string, r *rpc.DownloadRequest) *rpc.En
 		s.pendingEvents <- rpc.EventTransferComplete
 
 		return func() taskFn {
-			s.logger.Debug().Dur("delay", Config.UpgradeDelay).Msg("Simulating firmware upgrade")
+			s.logger.Debug(context.TODO(), "Simulating firmware upgrade", log.F{"delay": Config.UpgradeDelay})
 			s.pretendOfflineFor(Config.UpgradeDelay)
-			s.logger.Debug().Msg("Starting up")
+			s.logger.Debug(context.TODO(), "Starting up")
 			s.pendingEvents <- rpc.EventBoot
 			return nil
 		}
@@ -61,7 +64,7 @@ func (s *Simulator) upgradeFirmware(r *rpc.DownloadRequest) error {
 		req.SetBasicAuth(r.Username, r.Password)
 	}
 
-	s.logger.Debug().Str("url", r.URL).Msg("Downloading file")
+	s.logger.Debug(context.TODO(), "Downloading file", log.F{"url": r.URL})
 	hresp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("make request: %w", err)
@@ -79,7 +82,7 @@ func (s *Simulator) upgradeFirmware(r *rpc.DownloadRequest) error {
 		return nil
 	}
 
-	s.logger.Debug().Msg("Parsing firmware file")
+	s.logger.Debug(context.TODO(), "Parsing firmware file")
 	var ver struct {
 		Version string `json:"version"`
 	}
@@ -90,7 +93,7 @@ func (s *Simulator) upgradeFirmware(r *rpc.DownloadRequest) error {
 		return errors.New("incompatible firmware")
 	}
 
-	s.logger.Info().Str("version", ver.Version).Msg("Upgrading firmware")
+	s.logger.Info(context.TODO(), "Upgrading firmware", log.F{"version": ver.Version})
 	s.dm.SetFirmwareVersion(ver.Version)
 	return nil
 }

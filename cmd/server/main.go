@@ -9,10 +9,9 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
+	"github.com/localhots/blip"
+	"github.com/localhots/blip/noctx/log"
 
 	"github.com/localhots/SimulaTR69/datamodel"
 	"github.com/localhots/SimulaTR69/simulator"
@@ -20,36 +19,29 @@ import (
 
 func main() {
 	ctx := context.Background()
-	log.Logger = log.Output(zerolog.ConsoleWriter{
-		Out:        os.Stdout,
-		TimeFormat: time.DateTime,
-	})
-
-	log.Info().Msg("Loading configuration")
+	log.Info("Loading configuration")
 	if err := simulator.LoadConfig(ctx); err != nil {
-		log.Fatal().Err(err).Msg("Failed to load config")
+		log.Fatal("Failed to load config", log.Cause(err))
 	}
 	cfg := simulator.Config
 
-	logLevel, err := zerolog.ParseLevel(cfg.LogLevel)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to parse log level")
-	}
-	log.Logger = log.Logger.Level(logLevel)
+	logcfg := blip.DefaultConfig()
+	logcfg.Level = blipLevel(cfg.LogLevel)
+	log.Setup(logcfg)
 
-	log.Info().Str("file", cfg.DataModelPath).Msg("Loading datamodel")
+	log.Info("Loading datamodel", log.F{"path": cfg.DataModelPath})
 	defaults, err := datamodel.LoadDataModelFile(cfg.DataModelPath)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to load datamodel")
+		log.Fatal("Failed to load datamodel", log.Cause(err))
 	}
 	if cfg.NormalizeParameters {
 		datamodel.NormalizeParameters(defaults)
 	}
 
-	log.Info().Str("file", cfg.StateFilePath).Msg("Loading state")
+	log.Info("Loading state", log.F{"file": cfg.StateFilePath})
 	state, err := datamodel.LoadState(cfg.StateFilePath)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to load state")
+		log.Fatal("Failed to load state", log.Cause(err))
 	}
 	dm := datamodel.New(state.WithDefaults(defaults))
 
@@ -58,17 +50,17 @@ func main() {
 	}
 
 	id := dm.DeviceID()
-	log.Info().
-		Str("manufacturer", id.Manufacturer).
-		Str("oui", id.OUI).
-		Str("product_class", id.ProductClass).
-		Str("serial_number", id.SerialNumber).
-		Msg("Simulating device")
+	log.Info("Simulating device", log.F{
+		"manufacturer":  id.Manufacturer,
+		"oui":           id.OUI,
+		"product_class": id.ProductClass,
+		"serial_number": id.SerialNumber,
+	})
 
 	srv := simulator.New(dm)
 	go func() {
 		if err := srv.Start(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatal().Err(err).Msg("Failed to start server")
+			log.Fatal("Failed to start server", log.Cause(err))
 		}
 	}()
 
@@ -76,8 +68,29 @@ func main() {
 	signal.Notify(ch, syscall.SIGINT, syscall.SIGTERM)
 	<-ch
 
-	log.Info().Msg("Stopping server...")
+	log.Info("Stopping server...")
 	if err := srv.Stop(ctx); err != nil {
-		log.Fatal().Err(err).Msg("Failed to stop server")
+		log.Fatal("Failed to stop server", log.Cause(err))
+	}
+}
+
+func blipLevel(level string) blip.Level {
+	switch level {
+	case "trace":
+		return blip.LevelTrace
+	case "debug":
+		return blip.LevelDebug
+	case "info":
+		return blip.LevelInfo
+	case "warn":
+		return blip.LevelWarn
+	case "error":
+		return blip.LevelError
+	case "panic":
+		return blip.LevelPanic
+	case "fatal":
+		return blip.LevelFatal
+	default:
+		return blip.LevelInfo
 	}
 }

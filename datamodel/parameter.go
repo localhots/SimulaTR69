@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/rs/zerolog/log"
+	"github.com/localhots/blip/noctx/log"
 
 	"github.com/localhots/SimulaTR69/datamodel/noise"
 	"github.com/localhots/SimulaTR69/rpc"
@@ -87,12 +87,11 @@ func (p *Parameter) Normalize() {
 
 	td, err := parseTypeDef(p.Type)
 	if err != nil {
-		log.Warn().
-			Err(err).
-			Str("parameter", p.Path).
-			Str("type", p.Type).
-			Str("fallback", rpc.XSD(rpc.TypeString)).
-			Msg("Failed to parse parameter type")
+		log.Warn("Failed to parse parameter type", log.Cause(err), log.F{
+			"parameter": p.Path,
+			"type":      p.Type,
+			"fallback":  rpc.XSD(rpc.TypeString),
+		})
 		p.Type = rpc.XSD(rpc.TypeString)
 	}
 	p.Type = td.String()
@@ -144,11 +143,11 @@ func normalizeBool(name, val string) string {
 
 	b, err := strconv.ParseBool(val)
 	if err != nil {
-		log.Warn().
-			Str("parameter", name).
-			Str("value", val).
-			Str("fallback", fallback).
-			Msg("Invalid boolean value")
+		log.Warn("Invalid boolean value", log.F{
+			"parameter": name,
+			"value":     val,
+			"fallback":  fallback,
+		})
 		return fallback
 	}
 	return strconv.FormatBool(b)
@@ -160,11 +159,11 @@ func normalizeInt(name, val string) string {
 		return fallback
 	}
 	if _, err := strconv.ParseInt(val, 10, 64); err != nil {
-		log.Warn().
-			Str("parameter", name).
-			Str("value", val).
-			Str("fallback", fallback).
-			Msg("Invalid integer value")
+		log.Warn("Invalid integer value", log.F{
+			"parameter": name,
+			"value":     val,
+			"fallback":  fallback,
+		})
 		return fallback
 	}
 	return val
@@ -176,11 +175,11 @@ func normalizeUint(name, val string) string {
 		return fallback
 	}
 	if _, err := strconv.ParseUint(val, 10, 64); err != nil {
-		log.Warn().
-			Str("parameter", name).
-			Str("value", val).
-			Str("fallback", fallback).
-			Msg("Invalid unsigned integer value")
+		log.Warn("Invalid unsigned integer value", log.F{
+			"parameter": name,
+			"value":     val,
+			"fallback":  fallback,
+		})
 		return fallback
 	}
 	return val
