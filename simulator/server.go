@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -18,7 +19,7 @@ import (
 type server interface {
 	listenPort() int
 	url() string
-	stop(context.Context) error
+	stop(ctx context.Context) error
 }
 
 type crParams struct {
@@ -44,7 +45,7 @@ type httpServer struct {
 	logger     *blip.Logger
 }
 
-func newHTTPServer(h crHandlerFn, logger *blip.Logger) (server, error) {
+func newHTTPServer(ctx context.Context, h crHandlerFn, logger *blip.Logger) (server, error) {
 	var err error
 	if Config.Host == "" {
 		Config.Host, err = getIP()
@@ -53,30 +54,35 @@ func newHTTPServer(h crHandlerFn, logger *blip.Logger) (server, error) {
 		}
 	}
 
+	// Linter demands the ListenConfig must be used.
+	//nolint:noctx
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", Config.Host, Config.Port))
 	if err != nil {
 		return nil, fmt.Errorf("create TCP listener: %w", err)
 	}
 
-	// Config.Port can be set to 0 in order to bind to a random available port.
-	port := listener.Addr().(*net.TCPAddr).Port
+	// Config.Port can be set to 0 in order to bind to a random available addr.
+	addr, ok := listener.Addr().(*net.TCPAddr)
+	if !ok {
+		return nil, fmt.Errorf("get TCP addr: %w", err)
+	}
 
 	mux := http.NewServeMux()
 	s := &httpServer{
 		httpServer: &http.Server{
-			Addr:         fmt.Sprintf("%s:%d", Config.Host, port),
+			Addr:         fmt.Sprintf("%s:%d", Config.Host, addr.Port),
 			Handler:      mux,
 			ReadTimeout:  5 * time.Second,
 			WriteTimeout: 5 * time.Second,
 		},
 		handler: h,
-		port:    port,
+		port:    addr.Port,
 		logger:  logger,
 	}
 	mux.HandleFunc("/cwmp", s.handleConnectionRequest)
 	go func() {
 		if err := s.httpServer.Serve(listener); !errors.Is(err, http.ErrServerClosed) {
-			logger.Error(context.TODO(), "Server error", log.Cause(err))
+			logger.Error(ctx, "Server error", log.Cause(err))
 		}
 	}()
 
@@ -84,7 +90,7 @@ func newHTTPServer(h crHandlerFn, logger *blip.Logger) (server, error) {
 }
 
 func (s *httpServer) handleConnectionRequest(w http.ResponseWriter, r *http.Request) {
-	s.logger.Info(context.TODO(), "Received HTTP connection request", log.F{
+	s.logger.Info(r.Context(), "Received HTTP connection request", log.F{
 		"remote_addr": r.RemoteAddr,
 		"method":      r.Method,
 		"url":         r.URL.String(),
@@ -112,17 +118,20 @@ func (s *httpServer) listenPort() int {
 }
 
 func (s *httpServer) url() string {
-	return fmt.Sprintf("http://%s:%d/cwmp", Config.Host, s.port)
+	return fmt.Sprintf("http://%s/cwmp", net.JoinHostPort(Config.Host, strconv.Itoa(s.port)))
 }
 
 func (s *httpServer) stop(ctx context.Context) error {
-	return s.httpServer.Shutdown(ctx)
+	if err := s.httpServer.Shutdown(ctx); err != nil {
+		return fmt.Errorf("shutdown HTTP server: %w", err)
+	}
+	return nil
 }
 
 func getIP() (string, error) {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("get interface addresses: %w", err)
 	}
 	for _, addr := range addrs {
 		ipNet, ok := addr.(*net.IPNet)

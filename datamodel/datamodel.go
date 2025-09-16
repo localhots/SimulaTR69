@@ -219,7 +219,6 @@ func (dm *DataModel) DeleteObject(name string) {
 
 // ParameterNames returns all subparameters in the given path. If nextLevel is
 // set to true the list of parameters goes one level deeper.
-// nolint:nestif
 func (dm *DataModel) ParameterNames(path string, nextLevel bool) []Parameter {
 	var reg *regexp.Regexp
 	if path == "" {
@@ -381,6 +380,8 @@ func (dm *DataModel) prefixedPath(path string) string {
 			return path
 		}
 		return tr181Prefix + path
+	case unknownVersion:
+		fallthrough
 	default:
 		return path
 	}

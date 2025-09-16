@@ -9,9 +9,9 @@ import (
 // deletions, and default values. It uses a read-write mutex to ensure thread-
 // safe access and modifications.
 type State struct {
-	Bootstrapped bool
-	Changes      map[string]Parameter
-	Deleted      map[string]struct{}
+	Bootstrapped bool                 `json:"Bootstrapped"`
+	Changes      map[string]Parameter `json:"Changes"`
+	Deleted      map[string]struct{}  `json:"Deleted"`
 	defaults     map[string]Parameter
 	lock         sync.RWMutex
 }

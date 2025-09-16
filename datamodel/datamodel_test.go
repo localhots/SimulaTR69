@@ -151,7 +151,7 @@ func TestGetValueFormatGen(t *testing.T) {
 		}))
 		param, ok := dm.GetValue(path2)
 		assert.True(t, ok)
-		assert.Equal(t, "", param.GetValue())
+		assert.Empty(t, param.GetValue())
 	})
 }
 
@@ -277,14 +277,14 @@ func TestAddObject(t *testing.T) {
 	dm := New(newState())
 	dm.SetValue("Device.DeviceInfo.Description", "Residential Gateway")
 	_, err := dm.AddObject("Device.DeviceInfo.Description")
-	assert.NotNil(t, err)
+	require.Error(t, err)
 	assert.Equal(t, errors.New("parent is not an object"), err)
 }
 
 func TestAddObjectNonExistentParent(t *testing.T) {
 	dm := New(newState())
 	_, err := dm.AddObject("Device.NonExistent.Parent")
-	assert.NotNil(t, err)
+	require.Error(t, err)
 	assert.Equal(t, errors.New("parent object doesn't exist"), err)
 }
 
@@ -292,7 +292,7 @@ func TestAddObjectParentNotObject(t *testing.T) {
 	dm := New(newState())
 	dm.SetValue("Device.DeviceInfo", "Some Value")
 	_, err := dm.AddObject("Device.DeviceInfo")
-	assert.NotNil(t, err)
+	require.Error(t, err)
 	assert.Equal(t, errors.New("parent is not an object"), err)
 }
 
@@ -320,7 +320,7 @@ func TestParameterNamesEmptyPath(t *testing.T) {
 		},
 	}))
 	params := dm.ParameterNames("", true)
-	assert.Len(t, params, 0)
+	assert.Empty(t, params)
 }
 
 func TestParameterNamesNoMatch(t *testing.T) {
@@ -332,7 +332,7 @@ func TestParameterNamesNoMatch(t *testing.T) {
 		},
 	}))
 	params := dm.ParameterNames("Device.Ethernet", true)
-	assert.Len(t, params, 0)
+	assert.Empty(t, params)
 }
 
 func TestParameterNamesNextLevel(t *testing.T) {

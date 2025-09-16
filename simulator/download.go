@@ -14,7 +14,7 @@ import (
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
-func (s *Simulator) handleDownload(envID string, r *rpc.DownloadRequest) *rpc.EnvelopeEncoder {
+func (s *Simulator) handleDownload(ctx context.Context, envID string, r *rpc.DownloadRequest) *rpc.EnvelopeEncoder {
 	resp := rpc.NewEnvelope(envID)
 	resp.Body.DownloadResponse = &rpc.DownloadResponseEncoder{
 		Status:       rpc.DownloadNotCompleted,
@@ -29,7 +29,7 @@ func (s *Simulator) handleDownload(envID string, r *rpc.DownloadRequest) *rpc.En
 			StartTime:  time.Now().UTC().Format(time.RFC3339),
 			Fault:      &rpc.FaultStruct{},
 		}
-		err := s.upgradeFirmware(r)
+		err := s.upgradeFirmware(ctx, r)
 		tcr.CompleteTime = time.Now().UTC().Format(time.RFC3339)
 		if err != nil {
 			tcr.Fault = &rpc.FaultStruct{
@@ -44,9 +44,9 @@ func (s *Simulator) handleDownload(envID string, r *rpc.DownloadRequest) *rpc.En
 		s.pendingEvents <- rpc.EventTransferComplete
 
 		return func() taskFn {
-			s.logger.Debug(context.TODO(), "Simulating firmware upgrade", log.F{"delay": Config.UpgradeDelay})
+			s.logger.Debug(ctx, "Simulating firmware upgrade", log.F{"delay": Config.UpgradeDelay})
 			s.pretendOfflineFor(Config.UpgradeDelay)
-			s.logger.Debug(context.TODO(), "Starting up")
+			s.logger.Debug(ctx, "Starting up")
 			s.pendingEvents <- rpc.EventBoot
 			return nil
 		}
@@ -55,8 +55,8 @@ func (s *Simulator) handleDownload(envID string, r *rpc.DownloadRequest) *rpc.En
 	return resp
 }
 
-func (s *Simulator) upgradeFirmware(r *rpc.DownloadRequest) error {
-	req, err := http.NewRequest(http.MethodGet, r.URL, nil)
+func (s *Simulator) upgradeFirmware(ctx context.Context, r *rpc.DownloadRequest) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, r.URL, nil)
 	if err != nil {
 		return fmt.Errorf("create new request: %w", err)
 	}
@@ -64,7 +64,7 @@ func (s *Simulator) upgradeFirmware(r *rpc.DownloadRequest) error {
 		req.SetBasicAuth(r.Username, r.Password)
 	}
 
-	s.logger.Debug(context.TODO(), "Downloading file", log.F{"url": r.URL})
+	s.logger.Debug(ctx, "Downloading file", log.F{"url": r.URL})
 	hresp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("make request: %w", err)
@@ -72,7 +72,11 @@ func (s *Simulator) upgradeFirmware(r *rpc.DownloadRequest) error {
 	if hresp.Body == nil {
 		return errors.New("empty download")
 	}
-	defer hresp.Body.Close()
+	defer func() {
+		if err := hresp.Body.Close(); err != nil {
+			s.logger.Error(ctx, "Failed to close response body", log.Cause(err))
+		}
+	}()
 	b, err := io.ReadAll(hresp.Body)
 	if err != nil {
 		return fmt.Errorf("download: %w", err)
@@ -82,7 +86,7 @@ func (s *Simulator) upgradeFirmware(r *rpc.DownloadRequest) error {
 		return nil
 	}
 
-	s.logger.Debug(context.TODO(), "Parsing firmware file")
+	s.logger.Debug(ctx, "Parsing firmware file")
 	var ver struct {
 		Version string `json:"version"`
 	}
@@ -93,7 +97,7 @@ func (s *Simulator) upgradeFirmware(r *rpc.DownloadRequest) error {
 		return errors.New("incompatible firmware")
 	}
 
-	s.logger.Info(context.TODO(), "Upgrading firmware", log.F{"version": ver.Version})
+	s.logger.Info(ctx, "Upgrading firmware", log.F{"version": ver.Version})
 	s.dm.SetFirmwareVersion(ver.Version)
 	return nil
 }

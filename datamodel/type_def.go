@@ -57,6 +57,16 @@ func parseTypeDef(str string) (*typeDef, error) {
 	return td.normalize(), nil
 }
 
+func (td *typeDef) String() string {
+	if td.min != nil {
+		return fmt.Sprintf("%s(%d:%d)", rpc.XSD(td.name), *td.min, *td.max)
+	}
+	if td.max != nil {
+		return fmt.Sprintf("%s(%d)", rpc.XSD(td.name), *td.max)
+	}
+	return rpc.XSD(td.name)
+}
+
 func (td *typeDef) normalize() *typeDef {
 	switch td.name {
 	case rpc.TypeBase64,
@@ -85,14 +95,4 @@ func (td *typeDef) normalize() *typeDef {
 		td.name = rpc.TypeString
 	}
 	return td
-}
-
-func (td typeDef) String() string {
-	if td.min != nil {
-		return fmt.Sprintf("%s(%d:%d)", rpc.XSD(td.name), *td.min, *td.max)
-	}
-	if td.max != nil {
-		return fmt.Sprintf("%s(%d)", rpc.XSD(td.name), *td.max)
-	}
-	return rpc.XSD(td.name)
 }

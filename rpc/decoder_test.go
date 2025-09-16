@@ -62,7 +62,7 @@ func TestDecodeGetParameterNamesRequest(t *testing.T) {
 
 	pn := env.Body.GetParameterNames
 	assert.Equal(t, "Device.", pn.ParameterPath)
-	assert.Equal(t, false, pn.NextLevel)
+	assert.False(t, pn.NextLevel)
 }
 
 func TestDecodeSetParameterAttributesRequest(t *testing.T) {
@@ -75,9 +75,9 @@ func TestDecodeSetParameterAttributesRequest(t *testing.T) {
 
 	pa := pl.ParameterAttributes[0]
 	assert.Equal(t, "Device.DeviceSummary", pa.Name)
-	assert.Equal(t, true, pa.NotificationChange)
+	assert.True(t, pa.NotificationChange)
 	assert.Equal(t, AttributeNotificationPassive, pa.Notification)
-	assert.Equal(t, true, pa.AccessListChange)
+	assert.True(t, pa.AccessListChange)
 	assert.Equal(t, ArrayType(XSD(TypeString), 1), pa.AccessList.ArrayType)
 	require.Len(t, pa.AccessList.Values, 1)
 	assert.Equal(t, "Subscriber", pa.AccessList.Values[0])

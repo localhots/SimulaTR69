@@ -190,10 +190,10 @@ func TestGenerator(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gen, err := tt.fn.Generator()
 			if tt.err != "" {
-				assert.ErrorContains(t, err, tt.err)
+				require.ErrorContains(t, err, tt.err)
 				assert.Nil(t, gen)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.NotNil(t, gen)
 			}
 		})

@@ -35,18 +35,20 @@ type Metrics struct {
 
 // prometheus.CounterVec is a struct, not an interface. We can't reimplement it
 // so instead a custom interface is defined.
-// nolint:revive,stylecheck
+//
+//nolint:revive
 type prometheus_CounterVec interface {
 	prometheus.Collector
-	With(prometheus.Labels) prometheus.Counter
+	With(l prometheus.Labels) prometheus.Counter
 }
 
 // prometheus.HistogramVec is a struct, not an interface. We can't reimplement
 // it so instead a custom interface is defined.
-// nolint:revive,stylecheck
+//
+//nolint:revive
 type prometheus_HistogramVec interface {
 	prometheus.Collector
-	With(prometheus.Labels) prometheus.Observer
+	With(l prometheus.Labels) prometheus.Observer
 }
 
 // New creates and registers a new Metrics instance with the provided

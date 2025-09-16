@@ -8,11 +8,11 @@ import (
 	"github.com/localhots/SimulaTR69/rpc"
 )
 
-func (s *Simulator) handleGetRPCMethods(envID string) *rpc.EnvelopeEncoder {
-	s.logger.Info(context.TODO(), "Received message", log.F{"method": "GetRPCMethods"})
+func (s *Simulator) handleGetRPCMethods(ctx context.Context, envID string) *rpc.EnvelopeEncoder {
+	s.logger.Info(ctx, "Received message", log.F{"method": "GetRPCMethods"})
 	methods := rpc.SupportedMethods()
 	for _, m := range methods {
-		s.logger.Debug(context.TODO(), "GetRPCMethodsResponse", log.F{"method": m})
+		s.logger.Debug(ctx, "GetRPCMethodsResponse", log.F{"method": m})
 	}
 	resp := rpc.NewEnvelope(envID)
 	resp.Body.GetRPCMethodsResponse = &rpc.GetRPCMethodsResponseEncoder{

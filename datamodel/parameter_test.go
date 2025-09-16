@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNormalizeParameters(t *testing.T) {
@@ -68,7 +69,7 @@ func TestNormalizeParameters(t *testing.T) {
 
 	param := params["Device.DeviceInfo.DeviceCategory"]
 	assert.Equal(t, "xsd:string", param.Type)
-	assert.Equal(t, "", param.GetValue())
+	assert.Empty(t, param.GetValue())
 
 	param = params["Device.DeviceInfo.DeviceImageNumberOfEntries"]
 	assert.Equal(t, "xsd:unsignedInt", param.Type)
@@ -81,7 +82,7 @@ func TestNormalizeParameters(t *testing.T) {
 	param = params["Device.DeviceInfo.MemoryStatus"]
 	assert.Equal(t, "Device.DeviceInfo.MemoryStatus", param.Path)
 	assert.Equal(t, "object", param.Type)
-	assert.Equal(t, "", param.GetValue())
+	assert.Empty(t, param.GetValue())
 
 	param = params["Device.DeviceInfo.MemoryStatus.Free"]
 	assert.Equal(t, "xsd:unsignedInt", param.Type)
@@ -203,7 +204,7 @@ Parameter,Object,Writable,Value,Type
 Device.DeviceInfo.ProcessStatus.CPUUsage,false,true,"perlinNoise(offset=50, alpha=2, beta=2, scale=40) as xsd:int",sim:generator
 `))
 	params, err := LoadDataModel(fd)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	param := params["Device.DeviceInfo.ProcessStatus.CPUUsage"]
 	val := param.GetValue()
 	assert.Equal(t, "50", val)

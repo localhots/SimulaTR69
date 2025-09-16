@@ -1,4 +1,4 @@
-// nolint:revive
+//nolint:revive
 package rpc
 
 import (

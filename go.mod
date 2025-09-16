@@ -1,8 +1,6 @@
 module github.com/localhots/SimulaTR69
 
-go 1.23.4
-
-toolchain go1.24.6
+go 1.24.7
 
 require (
 	github.com/aquilax/go-perlin v1.1.0

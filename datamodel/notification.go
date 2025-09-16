@@ -43,6 +43,8 @@ func (dm *DataModel) ForcedInformParameters() []string {
 			"RootDataModelVersion",
 			"ManagementServer.AliasBasedAddressing",
 		)
+	case unknownVersion:
+		fallthrough
 	default:
 		return common
 	}
