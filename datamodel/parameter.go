@@ -34,7 +34,7 @@ func NormalizeParameters(params map[string]Parameter) {
 }
 
 // Name returns parameter name.
-func (p Parameter) Name() string {
+func (p *Parameter) Name() string {
 	tokens := strings.Split(p.Path, ".")
 	return tokens[len(tokens)-1]
 }
@@ -42,7 +42,7 @@ func (p Parameter) Name() string {
 // GetValue returns a parameter value. If the parameter has a generator function
 // it will be used to produce a value, otherwise the value from the parameter
 // will be returned.
-func (p Parameter) GetValue() string {
+func (p *Parameter) GetValue() string {
 	if p.gen != nil {
 		switch rpc.NoXSD(p.Type) {
 		case rpc.TypeInt, rpc.TypeLong:
@@ -61,7 +61,7 @@ func (p Parameter) GetValue() string {
 }
 
 // Encode converts a parameter into RPC ParameterValue structure.
-func (p Parameter) Encode() rpc.ParameterValueEncoder {
+func (p *Parameter) Encode() rpc.ParameterValueEncoder {
 	return rpc.ParameterValueEncoder{
 		Name: p.Path,
 		Value: rpc.ValueEncoder{
@@ -117,7 +117,7 @@ func (p *Parameter) initGenerator() error {
 	return nil
 }
 
-// TODO: implement value ranges
+// TODO: implement value ranges.
 func normalizeValue(td *typeDef, name, val string) string {
 	val = strings.TrimSpace(val)
 	switch td.name {

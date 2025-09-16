@@ -191,7 +191,7 @@ func TestEncodeDeleteObjectResponse(t *testing.T) {
 	}
 
 	b, err := env.EncodePretty()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, string(deleteObjectResponseTestData), string(b))
 }
 

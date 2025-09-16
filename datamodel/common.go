@@ -75,7 +75,8 @@ func (dm *DataModel) UDPConnectionRequestAddress() Parameter {
 	return p
 }
 
-// SetConnectionRequestURL sets UDP connection request address to the given value.
+// SetUDPConnectionRequestAddress sets UDP connection request address to the
+// given value.
 func (dm *DataModel) SetUDPConnectionRequestAddress(val string) {
 	dm.SetValue(pathUDPConnectionRequestAddress, val)
 }

@@ -1,6 +1,8 @@
 // Package noise provides algorithms to generate sequences of values that
 // simulate sensor readings with various patterns, including random walk,
 // piecewise linear, sine wave with noise, and Perlin noise.
+//
+//nolint:gosec
 package noise
 
 import (
@@ -18,8 +20,6 @@ import (
 func RandomWalk(startValue, minValue, maxValue, step float64) Generator {
 	prevValue := startValue
 	return func() float64 {
-		// nolint:gosec
-		// It's okay to use the default random number generator here.
 		change := (rand.Float64()*2 - 1) * step
 		newValue := clamp(prevValue+change, minValue, maxValue)
 		prevValue = newValue
@@ -39,8 +39,6 @@ func PiecewiseLinear(startValue, minValue, maxValue, step float64) Generator {
 		if i%20 == 0 {
 			direction *= -1
 		}
-		// nolint:gosec
-		// It's okay to use the default random number generator here.
 		change := direction*step + (rand.Float64()*2-1)*(step/2)
 		newValue := clamp(prevValue+change, minValue, maxValue)
 		prevValue = newValue
@@ -67,8 +65,6 @@ func PiecewiseLinear(startValue, minValue, maxValue, step float64) Generator {
 func SineWithNoise(offset, amplitude, frequency, phase, noiseScale float64) Generator {
 	i := 0
 	return func() float64 {
-		// nolint:gosec
-		// It's okay to use the default random number generator here.
 		value := offset + amplitude*math.Sin(frequency*float64(i)+phase) + rand.Float64()*noiseScale
 		i++
 		return value
@@ -87,10 +83,11 @@ func SineWithNoise(offset, amplitude, frequency, phase, noiseScale float64) Gene
 //   - scale: A scaling factor to adjust the amplitude of the noise.
 //   - offset: A constant value to be added to the generated noise values.
 func PerlinNoise(offset, alpha, beta float64, scale float64) Generator {
+	const noiseFactor = 0.1
 	p := perlin.NewPerlin(alpha, beta, 3, time.Now().UnixNano())
 	i := 0
 	return func() float64 {
-		value := p.Noise1D(float64(i) * 0.1)
+		value := p.Noise1D(float64(i) * noiseFactor)
 		i++
 		return offset + scale*value
 	}
@@ -110,8 +107,6 @@ func TrendWithNoise(startValue, step, noiseScale float64) func() float64 {
 	prevValue := startValue
 	return func() float64 {
 		newValue := prevValue + step
-		// nolint:gosec
-		// It's okay to use the default random number generator here.
 		noise := (rand.Float64()*2 - 1) * noiseScale
 		if step < 0 {
 			newValue = min(newValue, newValue+noise)

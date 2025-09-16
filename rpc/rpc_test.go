@@ -4,7 +4,7 @@ import _ "embed"
 
 var (
 	//
-	// Requests
+	// Requests.
 	//
 
 	//go:embed test_data/get_rpc_methods_request.xml
@@ -56,7 +56,7 @@ var (
 	autonomousTransferCompleteRequestTestData []byte
 
 	//
-	// Responses
+	// Responses.
 	//
 
 	//go:embed test_data/inform_response.xml

@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"strconv"
+
+	"github.com/localhots/blip/noctx/log"
 )
 
 // LoadState loads the state from the specified file path. If the file path
@@ -21,6 +23,8 @@ func LoadState(filePath string) (*State, error) {
 		return newState(), nil
 	}
 
+	// Assume the file is trusted
+	//nolint:gosec
 	b, err := os.ReadFile(filePath)
 	if err != nil && !os.IsNotExist(err) {
 		return nil, fmt.Errorf("read state file: %w", err)
@@ -36,11 +40,17 @@ func LoadState(filePath string) (*State, error) {
 
 // LoadDataModelFile loads the data model from the specified file path.
 func LoadDataModelFile(filePath string) (map[string]Parameter, error) {
+	// Assume the file is trusted
+	//nolint:gosec
 	fd, err := os.Open(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("read datamodel file: %w", err)
 	}
-	defer fd.Close()
+	defer func() {
+		if err := fd.Close(); err != nil {
+			log.Error("Failed to close datamodel file", log.Cause(err), log.F{"path": filePath})
+		}
+	}()
 
 	return LoadDataModel(fd)
 }
@@ -57,7 +67,7 @@ func LoadDataModel(r io.Reader) (map[string]Parameter, error) {
 	var headerRead bool
 	for {
 		f, err := csvr.Read()
-		// nolint:errorlint
+		//nolint:errorlint
 		if err == io.EOF {
 			break
 		}

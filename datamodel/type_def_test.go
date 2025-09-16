@@ -53,26 +53,22 @@ func TestParseTypeDef(t *testing.T) {
 	})
 	t.Run("invalid+", func(t *testing.T) {
 		td, err := parseTypeDef("invalid+")
-		require.Error(t, err)
-		assert.EqualError(t, err, "invalid type definition")
+		require.EqualError(t, err, "invalid type definition")
 		require.Nil(t, td)
 	})
 	t.Run("invalid(:50)", func(t *testing.T) {
 		td, err := parseTypeDef("invalid(:50)")
-		require.Error(t, err)
-		assert.EqualError(t, err, "invalid type definition")
+		require.EqualError(t, err, "invalid type definition")
 		require.Nil(t, td)
 	})
 	t.Run("invalid(x:50)", func(t *testing.T) {
 		td, err := parseTypeDef("invalid(x:50)")
-		require.Error(t, err)
-		assert.EqualError(t, err, "invalid type definition")
+		require.EqualError(t, err, "invalid type definition")
 		require.Nil(t, td)
 	})
 	t.Run("int(0:9999999999999999999999)", func(t *testing.T) {
 		td, err := parseTypeDef("int(0:9999999999999999999999)")
-		require.Error(t, err)
-		assert.EqualError(t, err, `parse type max: strconv.Atoi: parsing "9999999999999999999999": value out of range`)
+		require.EqualError(t, err, `parse type max: strconv.Atoi: parsing "9999999999999999999999": value out of range`)
 		require.Nil(t, td)
 	})
 }

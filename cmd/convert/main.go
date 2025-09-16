@@ -1,6 +1,7 @@
 // This package allows to convert datamodels into a CSV format that is supported
 // by this simulator.
-// nolint:gochecknoglobals
+//
+//nolint:gochecknoglobals,gosec
 package main
 
 import (
@@ -63,7 +64,11 @@ func save(path string, params []datamodel.Parameter) error {
 	if err != nil {
 		return fmt.Errorf("create destination file: %s", path)
 	}
-	defer fd.Close()
+	defer func() {
+		if err := fd.Close(); err != nil {
+			log.Error("Failed to close file", log.Cause(err), log.F{"path": path})
+		}
+	}()
 
 	slices.SortFunc(params, func(a, b datamodel.Parameter) int {
 		return cmp.Compare(strings.ToLower(a.Path), strings.ToLower(b.Path))
@@ -88,8 +93,6 @@ func save(path string, params []datamodel.Parameter) error {
 	return nil
 }
 
-// FIXME: cyclo complexity is too high, rewrite it
-// nolint:gocyclo,musttag
 func convertGetParameterValuesResponse(b []byte) []datamodel.Parameter {
 	var gpv struct {
 		XMLName       xml.Name `xml:"GetParameterValuesResponse"`

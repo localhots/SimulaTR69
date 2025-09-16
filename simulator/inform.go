@@ -28,11 +28,11 @@ type (
 func (s *Simulator) periodicInform(ctx context.Context) {
 	for !s.stopped() {
 		if !s.dm.PeriodicInformEnabled() {
-			s.logger.Info(context.TODO(), "Periodic inform disabled")
+			s.logger.Info(ctx, "Periodic inform disabled")
 		}
 
 		delay := time.Until(s.nextInformTime())
-		s.logger.Info(context.TODO(), "Scheduling next Inform request", log.F{
+		s.logger.Info(ctx, "Scheduling next Inform request", log.F{
 			"delay": delay.Truncate(time.Millisecond).String(),
 		})
 
@@ -48,9 +48,9 @@ func (s *Simulator) periodicInform(ctx context.Context) {
 		}
 
 		// Run all available tasks after session is finished
-		s.logger.Debug(context.TODO(), "Start processing tasks")
+		s.logger.Debug(ctx, "Start processing tasks")
 		s.processTasks()
-		s.logger.Debug(context.TODO(), "Finished processing tasks")
+		s.logger.Debug(ctx, "Finished processing tasks")
 	}
 }
 
@@ -72,7 +72,7 @@ func (s *Simulator) startSession(ctx context.Context, handler sessionHandler) {
 
 	// Allow only one session at a time
 	if ok := s.sessionMux.TryLock(); !ok {
-		s.logger.Warn(context.TODO(), "Session in progress, dropping request")
+		s.logger.Warn(ctx, "Session in progress, dropping request")
 		return
 	}
 	defer s.sessionMux.Unlock()
@@ -80,16 +80,16 @@ func (s *Simulator) startSession(ctx context.Context, handler sessionHandler) {
 	s.metrics.SessionsAttempted.Inc()
 	u, err := url.Parse(Config.ACSURL)
 	if err != nil {
-		s.logger.Error(context.TODO(), "Failed to parse ACS URL", log.Cause(err))
+		s.logger.Error(ctx, "Failed to parse ACS URL", log.Cause(err))
 		return
 	}
 
-	s.logger.Info(context.TODO(), "Connecting to ACS", log.F{"acs_url": Config.ACSURL})
+	s.logger.Info(ctx, "Connecting to ACS", log.F{"acs_url": Config.ACSURL})
 	connectionStartTime := time.Now()
 	client, closeFn, err := newClient(u.Hostname(), tcpPort(u))
 	s.metrics.ConnectionLatency.Observe(float64(time.Since(connectionStartTime).Milliseconds()))
 	if err != nil {
-		s.logger.Error(context.TODO(), "Failed to connect to ACS", log.Cause(err))
+		s.logger.Error(ctx, "Failed to connect to ACS", log.Cause(err))
 		s.metrics.RequestFailures.Inc()
 		s.dm.IncrRetryAttempts()
 		return
@@ -100,7 +100,6 @@ func (s *Simulator) startSession(ctx context.Context, handler sessionHandler) {
 	handler(ctx, &client)
 }
 
-// nolint:gocyclo
 func (s *Simulator) informHandler(ctx context.Context, client *http.Client) {
 	s.logger.Info(ctx, "Starting inform")
 	informEnv := s.makeInformEnvelope()
@@ -140,7 +139,7 @@ pendingRequests:
 				s.metrics.RequestFailures.Inc()
 				return
 			}
-			nextEnv = s.handleEnvelope(acsResponseEnv)
+			nextEnv = s.handleEnvelope(ctx, acsResponseEnv)
 		default:
 			break pendingRequests
 		}
@@ -157,7 +156,7 @@ pendingRequests:
 			break
 		}
 
-		nextEnv = s.handleEnvelope(acsRequestEnv)
+		nextEnv = s.handleEnvelope(ctx, acsRequestEnv)
 		if nextEnv == nil {
 			break
 		}
@@ -174,7 +173,7 @@ pendingRequests:
 }
 
 func (s *Simulator) send(ctx context.Context, client *http.Client, env *rpc.EnvelopeEncoder) (*rpc.EnvelopeDecoder, error) {
-	s.pretendToBeSlow()
+	s.pretendToBeSlow(ctx)
 
 	s.logger.Debug(ctx, "Sending request to ACS", log.F{"method": env.Method()})
 	resp, err := s.request(ctx, client, env)
@@ -197,7 +196,7 @@ func (s *Simulator) send(ctx context.Context, client *http.Client, env *rpc.Enve
 		return nil, nil
 	}
 
-	logPrettyXML(s.logger, "Response from ACS", b)
+	logPrettyXML(ctx, s.logger, "Response from ACS", b)
 	acsRequestEnv, err := rpc.Decode(b)
 	if err != nil {
 		return nil, fmt.Errorf("decode envelope: %w", err)
@@ -249,12 +248,12 @@ func (s *Simulator) makeInformEnvelope() *rpc.EnvelopeEncoder {
 func (s *Simulator) request(ctx context.Context, client *http.Client, env *rpc.EnvelopeEncoder) (*http.Response, error) {
 	var buf io.Reader
 	if env != nil {
-		s.debugEnvelope(env)
+		s.debugEnvelope(ctx, env)
 		b, err := env.EncodePretty()
 		if err != nil {
 			return nil, fmt.Errorf("encode envelope: %w", err)
 		}
-		logPrettyXML(s.logger, "Request from ACS", b)
+		logPrettyXML(ctx, s.logger, "Request from ACS", b)
 		buf = bytes.NewBuffer(b)
 	} else {
 		s.logger.Info(ctx, "Sending empty POST request")
@@ -308,7 +307,7 @@ func (s *Simulator) processTasks() {
 	}
 }
 
-func (s *Simulator) debugEnvelope(env *rpc.EnvelopeEncoder) {
+func (s *Simulator) debugEnvelope(ctx context.Context, env *rpc.EnvelopeEncoder) {
 	fields := log.F{"method": env.Method()}
 	if env.Body.Inform != nil {
 		fields["events"] = s.dm.PendingEvents()
@@ -318,17 +317,17 @@ func (s *Simulator) debugEnvelope(env *rpc.EnvelopeEncoder) {
 		fields["code"] = f.FaultCode.String()
 		fields["error"] = f.FaultString
 	}
-	s.logger.Info(context.TODO(), "Sending envelope", fields)
+	s.logger.Info(ctx, "Sending envelope", fields)
 
 	gpn := env.Body.GetParameterNamesResponse
 	gpv := env.Body.GetParameterValuesResponse
 	switch {
 	case gpn != nil && len(gpn.ParameterList.Parameters) > 100:
-		s.logger.Debug(context.TODO(), "Sending all parameter names")
+		s.logger.Debug(ctx, "Sending all parameter names")
 	case gpv != nil && len(gpv.ParameterList.ParameterValues) > 100:
-		s.logger.Debug(context.TODO(), "Sending all parameter values")
+		s.logger.Debug(ctx, "Sending all parameter values")
 	default:
-		s.logger.Debug(context.TODO(), "Request to ACS")
+		s.logger.Debug(ctx, "Request to ACS")
 	}
 }
 
@@ -346,7 +345,7 @@ func newClient(host, port string) (http.Client, func() error, error) {
 			return conn, nil
 		},
 		TLSClientConfig: &tls.Config{
-			// nolint:gosec
+			//nolint:gosec
 			InsecureSkipVerify: !Config.ACSVerifyTLS,
 		},
 	}
@@ -403,6 +402,6 @@ func calcInformTime(
 	return periodicInformTime.Add(time.Duration(intervalsElapsed) * periodicInformInterval)
 }
 
-func logPrettyXML(logger *blip.Logger, msg string, x []byte) {
-	logger.Trace(context.TODO(), msg+"\n"+prettyXML(x))
+func logPrettyXML(ctx context.Context, logger *blip.Logger, msg string, x []byte) {
+	logger.Trace(ctx, msg+"\n"+prettyXML(x))
 }

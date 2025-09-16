@@ -93,7 +93,7 @@ func (s *Simulator) SetArtificialLatency(d time.Duration) {
 // Start starts the simulator and initiates an inform session.
 func (s *Simulator) Start(ctx context.Context) error {
 	if Config.ConnReqEnableHTTP {
-		srv, err := newHTTPServer(s.handleConnectionRequest, s.logger)
+		srv, err := newHTTPServer(ctx, s.handleConnectionRequest, s.logger)
 		if err != nil {
 			return fmt.Errorf("start connection request server: %w", err)
 		}
@@ -180,92 +180,92 @@ func (s *Simulator) handleConnectionRequest(_ context.Context, params crParams) 
 	return nil
 }
 
-// nolint:gocyclo
-func (s *Simulator) handleEnvelope(env *rpc.EnvelopeDecoder) *rpc.EnvelopeEncoder {
+//nolint:gocyclo
+func (s *Simulator) handleEnvelope(ctx context.Context, env *rpc.EnvelopeDecoder) *rpc.EnvelopeEncoder {
 	s.metrics.MethodCalls.With(prometheus.Labels{"method": env.Method()}).Inc()
 	envID := env.Header.ID.Value
 	switch {
 	case env.Body.GetRPCMethods != nil:
-		return s.handleGetRPCMethods(envID)
+		return s.handleGetRPCMethods(ctx, envID)
 	case env.Body.SetParameterValues != nil:
-		env.Body.SetParameterValues.Debug(s.logger)
+		env.Body.SetParameterValues.Debug(ctx, s.logger)
 		return s.handleSetParameterValues(envID, env.Body.SetParameterValues)
 	case env.Body.GetParameterValues != nil:
-		env.Body.GetParameterValues.Debug(s.logger)
+		env.Body.GetParameterValues.Debug(ctx, s.logger)
 		return s.handleGetParameterValues(envID, env.Body.GetParameterValues)
 	case env.Body.GetParameterNames != nil:
-		env.Body.GetParameterNames.Debug(s.logger)
+		env.Body.GetParameterNames.Debug(ctx, s.logger)
 		return s.handleGetParameterNames(envID, env.Body.GetParameterNames)
 	case env.Body.SetParameterAttributes != nil:
-		env.Body.SetParameterAttributes.Debug(s.logger)
+		env.Body.SetParameterAttributes.Debug(ctx, s.logger)
 		return s.handleSetParameterAttributes(envID, env.Body.SetParameterAttributes)
 	case env.Body.GetParameterAttributes != nil:
-		env.Body.GetParameterAttributes.Debug(s.logger)
+		env.Body.GetParameterAttributes.Debug(ctx, s.logger)
 		return s.handleGetParameterAttributes(envID, env.Body.GetParameterAttributes)
 	case env.Body.AddObject != nil:
-		env.Body.AddObject.Debug(s.logger)
+		env.Body.AddObject.Debug(ctx, s.logger)
 		return s.handleAddObject(envID, env.Body.AddObject)
 	case env.Body.DeleteObject != nil:
-		env.Body.DeleteObject.Debug(s.logger)
+		env.Body.DeleteObject.Debug(ctx, s.logger)
 		return s.handleDeleteObject(envID, env.Body.DeleteObject)
 	case env.Body.Reboot != nil:
-		return s.handleReboot(envID, env.Body.Reboot)
+		return s.handleReboot(ctx, envID, env.Body.Reboot)
 	case env.Body.Download != nil:
-		env.Body.Download.Debug(s.logger)
-		return s.handleDownload(envID, env.Body.Download)
+		env.Body.Download.Debug(ctx, s.logger)
+		return s.handleDownload(ctx, envID, env.Body.Download)
 	case env.Body.Upload != nil:
-		env.Body.Upload.Debug(s.logger)
+		env.Body.Upload.Debug(ctx, s.logger)
 		return s.handleUpload(envID, env.Body.Upload)
 	case env.Body.FactoryReset != nil:
-		s.logger.Info(context.TODO(), "Received message", log.F{"method": "FactoryReset"})
-		return s.handleFactoryReset(envID)
+		s.logger.Info(ctx, "Received message", log.F{"method": "FactoryReset"})
+		return s.handleFactoryReset(ctx, envID)
 	case env.Body.GetQueuedTransfers != nil:
-		return s.handleGetQueuedTransfers(envID)
+		return s.handleGetQueuedTransfers(ctx, envID)
 	case env.Body.GetAllQueuedTransfers != nil:
-		return s.handleGetAllQueuedTransfers(envID)
+		return s.handleGetAllQueuedTransfers(ctx, envID)
 	case env.Body.ScheduleInform != nil:
-		return s.handleScheduleInform(envID)
+		return s.handleScheduleInform(ctx, envID)
 	case env.Body.SetVouchers != nil:
-		return s.handleSetVouchers(envID)
+		return s.handleSetVouchers(ctx, envID)
 	case env.Body.GetOptions != nil:
-		return s.handleGetOptions(envID)
+		return s.handleGetOptions(ctx, envID)
 	case env.Body.Fault != nil:
-		return s.handleFault(envID, env.Body.Fault)
+		return s.handleFault(ctx, envID, env.Body.Fault)
 	case env.Body.TransferCompleteResponse != nil:
 		return nil
 	default:
-		s.logger.Warn(context.TODO(), "Unknown method", log.F{"env_id": envID})
+		s.logger.Warn(ctx, "Unknown method", log.F{"env_id": envID})
 		return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 	}
 }
 
-func (s *Simulator) handleGetQueuedTransfers(envID string) *rpc.EnvelopeEncoder {
-	s.logger.Info(context.TODO(), "Received message", log.F{"method": "GetQueuedTransfers"})
+func (s *Simulator) handleGetQueuedTransfers(ctx context.Context, envID string) *rpc.EnvelopeEncoder {
+	s.logger.Info(ctx, "Received message", log.F{"method": "GetQueuedTransfers"})
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
-func (s *Simulator) handleGetAllQueuedTransfers(envID string) *rpc.EnvelopeEncoder {
-	s.logger.Info(context.TODO(), "Received message", log.F{"method": "GetAllQueuedTransfers"})
+func (s *Simulator) handleGetAllQueuedTransfers(ctx context.Context, envID string) *rpc.EnvelopeEncoder {
+	s.logger.Info(ctx, "Received message", log.F{"method": "GetAllQueuedTransfers"})
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
-func (s *Simulator) handleScheduleInform(envID string) *rpc.EnvelopeEncoder {
-	s.logger.Info(context.TODO(), "Received message", log.F{"method": "ScheduleInform"})
+func (s *Simulator) handleScheduleInform(ctx context.Context, envID string) *rpc.EnvelopeEncoder {
+	s.logger.Info(ctx, "Received message", log.F{"method": "ScheduleInform"})
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
-func (s *Simulator) handleSetVouchers(envID string) *rpc.EnvelopeEncoder {
-	s.logger.Info(context.TODO(), "Received message", log.F{"method": "SetVouchers"})
+func (s *Simulator) handleSetVouchers(ctx context.Context, envID string) *rpc.EnvelopeEncoder {
+	s.logger.Info(ctx, "Received message", log.F{"method": "SetVouchers"})
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
-func (s *Simulator) handleGetOptions(envID string) *rpc.EnvelopeEncoder {
-	s.logger.Info(context.TODO(), "Received message", log.F{"method": "GetOptions"})
+func (s *Simulator) handleGetOptions(ctx context.Context, envID string) *rpc.EnvelopeEncoder {
+	s.logger.Info(ctx, "Received message", log.F{"method": "GetOptions"})
 	return rpc.NewEnvelope(envID).WithFault(rpc.FaultMethodNotSupported)
 }
 
-func (s *Simulator) handleFault(envID string, r *rpc.FaultPayload) *rpc.EnvelopeEncoder {
-	s.logger.Error(context.TODO(), "ACS fault", log.F{
+func (s *Simulator) handleFault(ctx context.Context, envID string, r *rpc.FaultPayload) *rpc.EnvelopeEncoder {
+	s.logger.Error(ctx, "ACS fault", log.F{
 		"env_id": envID,
 		"code":   r.Detail.Fault.FaultCode.String(),
 		"string": r.Detail.Fault.FaultString,
@@ -280,11 +280,12 @@ func (s *Simulator) pretendOfflineFor(dur time.Duration) {
 	time.Sleep(dur)
 }
 
-func (s *Simulator) pretendToBeSlow() {
+func (s *Simulator) pretendToBeSlow(ctx context.Context) {
 	if s.artificialLatency > 0 {
-		// nolint:gosec
+		// It's fine to use non cryptographic randomness here.
+		//nolint:gosec
 		delay := time.Duration(rand.Int63n(int64(s.artificialLatency))).Round(time.Millisecond)
-		s.logger.Debug(context.TODO(), "Simulating slow response", log.F{"delay": delay.String()})
+		s.logger.Debug(ctx, "Simulating slow response", log.F{"delay": delay.String()})
 		time.Sleep(delay)
 	}
 }

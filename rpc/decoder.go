@@ -1,4 +1,4 @@
-// nolint:revive
+//nolint:revive
 package rpc
 
 import (
@@ -62,10 +62,10 @@ type SetParameterValuesRequest struct {
 	ParameterKey string
 }
 
-func (r SetParameterValuesRequest) Debug(logger *blip.Logger) {
-	logger.Info(context.TODO(), "Received message", log.F{"method": "SetParameterValues"})
+func (r SetParameterValuesRequest) Debug(ctx context.Context, logger *blip.Logger) {
+	logger.Info(ctx, "Received message", log.F{"method": "SetParameterValues"})
 	for _, v := range r.ParameterList.ParameterValues {
-		logger.Debug(context.TODO(), "SetParameterValues", log.F{
+		logger.Debug(ctx, "SetParameterValues", log.F{
 			"name":  v.Name,
 			"type":  v.Value.Type,
 			"value": v.Value.Value,
@@ -77,10 +77,10 @@ type GetParameterValuesRequest struct {
 	ParameterNames ParameterNames
 }
 
-func (r GetParameterValuesRequest) Debug(logger *blip.Logger) {
-	logger.Info(context.TODO(), "Received message", log.F{"method": "GetParameterValues"})
+func (r GetParameterValuesRequest) Debug(ctx context.Context, logger *blip.Logger) {
+	logger.Info(ctx, "Received message", log.F{"method": "GetParameterValues"})
 	for _, name := range r.ParameterNames.Names {
-		logger.Debug(context.TODO(), "GetParameterValues", log.F{"name": name})
+		logger.Debug(ctx, "GetParameterValues", log.F{"name": name})
 	}
 }
 
@@ -89,9 +89,9 @@ type GetParameterNamesRequest struct {
 	NextLevel     bool
 }
 
-func (r GetParameterNamesRequest) Debug(logger *blip.Logger) {
-	logger.Info(context.TODO(), "Received message", log.F{"method": "GetParameterNames"})
-	logger.Debug(context.TODO(), "GetParameterNames", log.F{
+func (r GetParameterNamesRequest) Debug(ctx context.Context, logger *blip.Logger) {
+	logger.Info(ctx, "Received message", log.F{"method": "GetParameterNames"})
+	logger.Debug(ctx, "GetParameterNames", log.F{
 		"name":       r.ParameterPath,
 		"next_level": r.NextLevel,
 	})
@@ -104,10 +104,10 @@ type SetParameterAttributesRequest struct {
 	}
 }
 
-func (r SetParameterAttributesRequest) Debug(logger *blip.Logger) {
-	logger.Info(context.TODO(), "Received message", log.F{"method": "SetParameterAttributes"})
+func (r SetParameterAttributesRequest) Debug(ctx context.Context, logger *blip.Logger) {
+	logger.Info(ctx, "Received message", log.F{"method": "SetParameterAttributes"})
 	for _, attr := range r.ParameterList.ParameterAttributes {
-		logger.Debug(context.TODO(), "SetParameterAttributes", log.F{
+		logger.Debug(ctx, "SetParameterAttributes", log.F{
 			"name":                attr.Name,
 			"notification":        int(attr.Notification),
 			"notification_change": attr.NotificationChange,
@@ -121,10 +121,10 @@ type GetParameterAttributesRequest struct {
 	ParameterNames ParameterNames
 }
 
-func (r GetParameterAttributesRequest) Debug(logger *blip.Logger) {
-	logger.Info(context.TODO(), "Received message", log.F{"method": "GetParameterAttributes"})
+func (r GetParameterAttributesRequest) Debug(ctx context.Context, logger *blip.Logger) {
+	logger.Info(ctx, "Received message", log.F{"method": "GetParameterAttributes"})
 	for _, path := range r.ParameterNames.Names {
-		logger.Debug(context.TODO(), "GetParameterAttributes", log.F{"name": path})
+		logger.Debug(ctx, "GetParameterAttributes", log.F{"name": path})
 	}
 }
 
@@ -133,9 +133,9 @@ type AddObjectRequest struct {
 	ParameterKey string
 }
 
-func (r AddObjectRequest) Debug(logger *blip.Logger) {
-	logger.Info(context.TODO(), "Received message", log.F{"method": "AddObject"})
-	logger.Debug(context.TODO(), "AddObjectRequest", log.F{"path": r.ObjectName})
+func (r AddObjectRequest) Debug(ctx context.Context, logger *blip.Logger) {
+	logger.Info(ctx, "Received message", log.F{"method": "AddObject"})
+	logger.Debug(ctx, "AddObjectRequest", log.F{"path": r.ObjectName})
 }
 
 type DeleteObjectRequest struct {
@@ -143,9 +143,9 @@ type DeleteObjectRequest struct {
 	ParameterKey string
 }
 
-func (r DeleteObjectRequest) Debug(logger *blip.Logger) {
-	logger.Info(context.TODO(), "Received message", log.F{"method": "DeleteObject"})
-	logger.Debug(context.TODO(), "DeleteObjectRequest", log.F{"path": r.ObjectName})
+func (r DeleteObjectRequest) Debug(ctx context.Context, logger *blip.Logger) {
+	logger.Info(ctx, "Received message", log.F{"method": "DeleteObject"})
+	logger.Debug(ctx, "DeleteObjectRequest", log.F{"path": r.ObjectName})
 }
 
 type RebootRequest struct {
@@ -165,9 +165,9 @@ type DownloadRequest struct {
 	FailureURL     string
 }
 
-func (r DownloadRequest) Debug(logger *blip.Logger) {
-	logger.Info(context.TODO(), "Received message", log.F{"method": "Download"})
-	logger.Debug(context.TODO(), "DownloadRequest", log.F{
+func (r DownloadRequest) Debug(ctx context.Context, logger *blip.Logger) {
+	logger.Info(ctx, "Received message", log.F{"method": "Download"})
+	logger.Debug(ctx, "DownloadRequest", log.F{
 		"file_type": r.FileType,
 		"url":       r.URL,
 		"file_size": r.FileSize,
@@ -178,9 +178,9 @@ type UploadRequest struct {
 	CommandKey string
 }
 
-func (r UploadRequest) Debug(logger *blip.Logger) {
-	logger.Info(context.TODO(), "Received message", log.F{"method": "Upload"})
-	logger.Debug(context.TODO(), "UploadRequest", log.F{"command_key": r.CommandKey})
+func (r UploadRequest) Debug(ctx context.Context, logger *blip.Logger) {
+	logger.Info(ctx, "Received message", log.F{"method": "Upload"})
+	logger.Debug(ctx, "UploadRequest", log.F{"command_key": r.CommandKey})
 }
 
 type ScheduleInformRequest struct {
@@ -253,7 +253,7 @@ func Decode(b []byte) (*EnvelopeDecoder, error) {
 	return &env, nil
 }
 
-// nolint:gocyclo
+//nolint:gocyclo
 func (env EnvelopeDecoder) Method() string {
 	switch {
 	case env.Body.GetRPCMethods != nil:

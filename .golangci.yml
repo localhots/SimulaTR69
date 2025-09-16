@@ -1,53 +1,46 @@
-run:
-  timeout: 30s
-
-output:
-  sort-results: true
-  sort-order:
-    - file
+version: "2"
 
 linters:
+  default: all
+  disable:
+    # Annoying linters
+    - depguard # Needs configuration
+    - ireturn # Forbids returning interface values
+    - nlreturn # Requires a newline before return statements
+    - exhaustruct # Requires all struct fields to be initialized
+    - nonamedreturns # Forbids named return values
+    - wsl_v5 # Enforces particular statement grouping using blank lines
+    - noinlineerr # Forbids inline error handling
+    - varnamelen # Forbids short variable names
+    - err113 # Forbids dynamic error declaration without wrapping
+    - nilnil # Forbids `return nil, nil` as not idiomatic
+    - paralleltest # Requires parallel tests
+    - tagliatelle # Enforces a specific struct tag casing
+    - testpackage # Requires tests to be in a package named `*_test`
+    - funlen # Enforces function length limits
+    - godox # Forbids TODO/FIXME comments
+    - promlinter # Enforces a naming convention
+    # Others
+    - wsl # deprecated (since v2.2.0) due to: new major version. Replaced by wsl_v5.
+    - cyclop # We already use gocyclo
+    - musttag # Too many false positives
+    - mnd # None of the numbers should be magic
+    - lll # Line width is enforced with exceptions
+  settings:
+    gocyclo:
+      min-complexity: 12
+    nestif:
+      min-complexity: 6
+
+formatters:
   enable:
-    - bodyclose
-    - containedctx
-    - contextcheck
-    - copyloopvar
-    - decorder
-    - dupl
-    - dupword
-    - durationcheck
-    - errchkjson
-    - errname
-    - errorlint
-    - gochecknoglobals
-    - goconst
     - goimports
-    - gocritic
-    - gocyclo
-    - gosec
-    - makezero
-    - mirror
-    - nestif
-    - nilerr
-    - perfsprint
-    - prealloc
-    - revive
-    - stylecheck
-    - unconvert
-    - unused
-    - usestdlibvars
-    - wastedassign
-    - whitespace
 
-linters-settings:
-  gocyclo:
-    min-complexity: 12
-  nestif:
-    min-complexity: 6
+output:
+  sort-order:
+    - file
+    - linter
+  show-stats: true
 
-issues:
-  include:
-    # don't suppress missing exported method/function parameters
-    - EXC0012
-    # don't suppress missing package level comment
-    - EXC0015
+run:
+  timeout: 5m

@@ -21,7 +21,7 @@ const (
 
 func TestRandomWalkBounds(t *testing.T) {
 	gen := RandomWalk(startValue, minValue, maxValue, step)
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		value := gen()
 		if value < minValue || value > maxValue {
 			t.Errorf("Value out of bounds: got %v, want between %v and %v", value, minValue, maxValue)
@@ -31,7 +31,7 @@ func TestRandomWalkBounds(t *testing.T) {
 
 func TestPiecewiseLinearBounds(t *testing.T) {
 	gen := PiecewiseLinear(startValue, minValue, maxValue, step)
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		value := gen()
 		if value < minValue || value > maxValue {
 			t.Errorf("Value out of bounds: got %v, want between %v and %v", value, minValue, maxValue)
@@ -41,7 +41,7 @@ func TestPiecewiseLinearBounds(t *testing.T) {
 
 func TestSineWithNoiseBounds(t *testing.T) {
 	gen := SineWithNoise(offset, amplitude, frequency, phase, noiseScale)
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		value := gen()
 		// Since sine wave values range between -amplitude and +amplitude, we add noiseScale to the bounds
 		if value < -amplitude-noiseScale || value > amplitude+noiseScale {
@@ -52,7 +52,7 @@ func TestSineWithNoiseBounds(t *testing.T) {
 
 func TestPerlinNoiseBounds(t *testing.T) {
 	gen := PerlinNoise(offset, alpha, beta, scale)
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		value := gen()
 		// Perlin noise values are typically between -1 and 1, scaled and offset
 		if value < -scale+offset || value > scale+offset {
@@ -63,7 +63,7 @@ func TestPerlinNoiseBounds(t *testing.T) {
 
 func TestTrendWithNoiseBounds(t *testing.T) {
 	gen := TrendWithNoise(startValue, step, noiseScale)
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		value := gen()
 		// Since the trend can go indefinitely, we only check that the noise does not exceed the noiseScale
 		if step >= 0 && value < startValue || step < 0 && value > startValue {
@@ -74,21 +74,21 @@ func TestTrendWithNoiseBounds(t *testing.T) {
 
 func BenchmarkRandomWalk(b *testing.B) {
 	gen := RandomWalk(startValue, minValue, maxValue, step)
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		gen()
 	}
 }
 
 func BenchmarkPiecewiseLinear(b *testing.B) {
 	gen := PiecewiseLinear(startValue, minValue, maxValue, step)
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		gen()
 	}
 }
 
 func BenchmarkSineWithNoise(b *testing.B) {
 	gen := SineWithNoise(offset, amplitude, frequency, phase, noiseScale)
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		gen()
 	}
 }
@@ -96,14 +96,14 @@ func BenchmarkSineWithNoise(b *testing.B) {
 func BenchmarkPerlinNoise(b *testing.B) {
 	gen := PerlinNoise(offset, alpha, beta, scale)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		gen()
 	}
 }
 
 func BenchmarkTrendWithNoise(b *testing.B) {
 	gen := TrendWithNoise(startValue, step, noiseScale)
-	for i := 0; i < b.N; i++ {
+	for b.Loop() {
 		gen()
 	}
 }
