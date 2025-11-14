@@ -423,5 +423,9 @@ type basicAuthTransport struct {
 
 func (t *basicAuthTransport) RoundTrip(r *http.Request) (*http.Response, error) {
 	r.SetBasicAuth(t.username, t.password)
-	return t.transport.RoundTrip(r)
+	resp, err := t.transport.RoundTrip(r)
+	if err != nil {
+		return nil, fmt.Errorf("basic auth round trip: %w", err)
+	}
+	return resp, nil
 }
