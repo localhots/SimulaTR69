@@ -8,17 +8,17 @@ and
 datamodel formats.
 
 > [!WARNING]
-> **This project is under active development.**
+> **This project is no longer under active development.**
 >
 > All required TR-069 operations are implemented.
-> Current work focuses on optimizations and compatibility.
+> Codebase is considered stable and doesn't require significant change.
 
 # Installation
 
 Give it a serial number, point to a datamodel file and the ACS and it should
 work out of the box.
 
-See `server/config.go` for available configuration options.
+See [simulator/config.go](simulator/config.go) for available configuration options.
 
 ## Docker Compose
 
