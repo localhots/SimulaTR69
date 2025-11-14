@@ -53,7 +53,7 @@ var Config struct {
 	ACSURL string `env:"ACS_URL, required"`
 
 	// ACSAuth configures authentication scheme for the ACS. It defaults to
-	// "none". Supported values: digest, none
+	// "none". Supported values: none, basic, digest.
 	ACSAuth string `env:"ACS_AUTH, default=none"`
 
 	// ACSUsername is used to authenticate requests to the ACS.
@@ -99,10 +99,12 @@ var Config struct {
 var ErrNoCreds = errors.New("username/password missing")
 
 const (
-	// AuthDigest an identifier for HTTP digest access authentication.
-	AuthDigest = "digest"
 	// AuthNone an identifier for no HTTP authentication.
 	AuthNone = "none"
+	// AuthBasic an identifier for HTTP basic access authentication.
+	AuthBasic = "basic"
+	// AuthDigest an identifier for HTTP digest access authentication.
+	AuthDigest = "digest"
 )
 
 // LoadConfig attempts to load configuration from environment variables.
